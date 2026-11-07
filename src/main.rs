@@ -1,4 +1,5 @@
 mod app;
+mod project;
 
 use app::FireEffectsApp;
 
