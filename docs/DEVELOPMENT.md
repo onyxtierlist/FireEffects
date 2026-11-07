@@ -57,7 +57,17 @@ say so in the handoff instead of marking it passed.
 Cargo.toml              workspace manifest, shared metadata and lints
 rust-toolchain.toml     toolchain channel and components
 crates/core/            headless editing logic (no UI, no I/O, no dependencies)
+  src/frame_rate.rs       exact rational frame rates and time conversions
+  src/workspace.rs        panel visibility and focus rules
+  src/input.rs            keys, key chords, commands, and the binding table
 crates/app/             desktop application; binary is `fireeffects`
+  src/main.rs             window options and module wiring
+  src/ui.rs               shell layout, command dispatch, status bar
+  src/panels.rs           the four panels and their current contents
+  src/menu.rs             menu bar, built from working commands only
+  src/dialogs.rs          keyboard-shortcut reference and About
+  src/keys.rs             egui input to core command mapping
+  src/theme.rs            palette and egui style
 docs/ARCHITECTURE.md    technology decisions and deferred decisions
 docs/DEVELOPMENT.md     this file
 ```
@@ -67,15 +77,36 @@ Adding a crate: add it under `crates/`, list it in `[workspace] members`, inheri
 and set `[lints] workspace = true`. Keep the dependency direction pointing at
 `core`, never the other way.
 
-## What Stage 0 does and does not do
+## What Stage 1 does and does not do
 
-The application opens one window and reports which stages are implemented. It has
-no menus, no project, no media import, no timeline, no preview, and no export. That
-is the intended Stage 0 scope: a foundation a contributor can clone, build, run,
-and understand.
+The application opens into the editor shell: a menu bar, four resizable panels
+(Media, Preview, Timeline, Inspector), a status bar showing which panel has focus,
+and two help windows. Every control in it works:
 
-The window currently has a single status screen; the editor shell (panels, menus,
-selection, keyboard behaviour) is Stage 1.
+- `View` shows or hides a panel. Hiding the last visible panel is refused, and the
+  status bar explains why.
+- Clicking a panel header focuses that panel.
+- `Ctrl+1`-`Ctrl+4` show a panel and focus it, `F6` and `Shift+F6` cycle focus,
+  `F1` opens the shortcut reference, `Ctrl+Q` quits.
+- `Help` opens the shortcut reference and About.
+
+There is still no project, no media import, no timeline, no preview, and no export;
+each panel says which stage brings its features. That is the intended Stage 1
+scope.
+
+Adding a shortcut means editing `BINDINGS` in `crates/core/src/input.rs`. The
+window's key handling, the menus, and the help window all read that table, and a
+test fails if a new binding's key is not also watched by `crates/app/src/keys.rs`.
+
+## Testing the interface without a display
+
+`crates/app` uses `egui_kittest` (dev-dependency only) to run the real shell in a
+headless `egui::Context`. Tests in `crates/app/src/ui.rs` click menu entries,
+click panel headers, and press keys, then check the resulting state. They need no
+window, display, or GPU, so they run in CI and in a container.
+
+They do not check appearance. A layout or colour change still needs someone to look
+at the running window, and should be reported as visually unverified if nobody has.
 
 ## Troubleshooting
 

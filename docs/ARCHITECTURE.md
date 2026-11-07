@@ -1,15 +1,18 @@
 # FireEffects architecture
 
-Status: **Stage 0 (Foundation)**. Last reviewed with the repository at the Stage 0
+Status: **Stage 1 (Editor shell)**. Last reviewed with the repository at the Stage 1
 commit. This document records what exists, what was chosen deliberately, and what
 is intentionally still undecided. Update it in the same change that alters one of
 those decisions.
 
 ## What exists today
 
-- A Cargo workspace with two crates and no application features.
-- `crates/app`: opens a native window showing an honest status read-out.
-- `crates/core`: platform-independent types with no third-party dependencies.
+- A Cargo workspace with two crates.
+- `crates/app`: the editor shell — a window with a menu bar, the four workspace
+  panels, a status bar, and two help windows.
+- `crates/core`: platform-independent types with no third-party dependencies: the
+  time model, the workspace layout and focus model, and the keyboard command
+  table.
 
 There is no project format, no media pipeline, no compositor, and no exporter. The
 UI does not draw controls for any of those, because they do not work yet.
@@ -21,9 +24,20 @@ fireeffects-app  ──▶  fireeffects-core
 ```
 
 - **`fireeffects-core`** holds editing logic that must be testable without a
-  display, a GPU, or media files: the time model today; project, timeline, and
-  effect-parameter models as those stages land.
-- **`fireeffects-app`** owns the window, event loop, theme, and panels.
+  display, a GPU, or media files: the time model, the workspace focus model, and
+  the command table today; project, timeline, and effect-parameter models as those
+  stages land.
+- **`fireeffects-app`** owns the window, event loop, theme, and widgets. Modules:
+
+  | Module | Responsibility |
+  | --- | --- |
+  | `main.rs` | Window options, renderer choice, module wiring. |
+  | `ui.rs` | Shell layout, command dispatch, status bar, `eframe::App`. |
+  | `panels.rs` | The four panels and what each shows today. Stateless. |
+  | `menu.rs` | The menu bar. Returns a command, applies nothing. |
+  | `dialogs.rs` | Keyboard-shortcut reference and About windows. |
+  | `keys.rs` | Maps egui input onto the core command table. |
+  | `theme.rs` | Palette and the egui style applied at start-up. |
 - **Dependency rule:** `core` never depends on `app`, and never on windowing,
   rendering, or codec crates. If a piece of logic needs a GPU context to test, it
   does not belong in `core`.
@@ -71,7 +85,7 @@ compositor does not also have to justify a second graphics stack.
 
 ### Media I/O: not decided yet
 
-Nothing decodes media in Stage 0, and the decision belongs to the stage that first
+Nothing decodes media yet, and the decision belongs to the stage that first
 imports a file (Stage 2) or previews one (Stage 4). Criteria for that decision:
 
 1. Accurate seeking, not just sequential playback.
@@ -100,7 +114,88 @@ before the model's shape is known.
 
 Decided once there is something worth shipping (after Stage 7). The likely shape is
 `cargo-dist` for archives and platform installers, plus code signing and
-notarization per platform. Not set up in Stage 0.
+notarization per platform. Not set up yet.
+
+## The editor shell (Stage 1)
+
+### Regions
+
+```text
+┌──────────────────────────────────────────────────┐
+│ wordmark   File  View  Help            menu bar   │
+├────────────┬─────────────────────┬───────────────┤
+│  Media     │      Preview        │   Inspector   │
+│            ├─────────────────────┤               │
+│            │      Timeline       │               │
+├────────────┴─────────────────────┴───────────────┤
+│ Focus: Media                F1 for shortcuts     │
+└──────────────────────────────────────────────────┘
+```
+
+The panels are added in the order media, inspector, timeline, preview, because
+egui gives each panel a slice of what is left. That order is what keeps the
+timeline spanning only the middle column instead of the whole window. Every panel
+is resizable with a minimum width or height, so a layout cannot be dragged into
+an unusable state.
+
+### Focus, selection, and keyboard
+
+One panel holds focus at a time, shown by an ember title and reported in the
+status bar. Focusing changes nothing else yet, because there is nothing else to act
+on; the model exists so Stage 3 has one place to ask which panel is active instead
+of inventing a second notion later.
+
+The rules live in `core::workspace`, not in the widgets: a hidden panel cannot take
+focus, hiding the focused panel moves focus to the next visible one, and the last
+visible panel cannot be hidden (the status bar says so when it is attempted). They
+are unit-tested without a window.
+
+Keyboard shortcuts are declared once, in `core::input::BINDINGS`:
+
+| Chord | Command |
+| --- | --- |
+| `Ctrl+1` … `Ctrl+4` | Show the Media, Preview, Timeline, or Inspector panel and focus it |
+| `F6` / `Shift+F6` | Focus the next / previous visible panel |
+| `F1` | Open the shortcut reference |
+| `Ctrl+Q` | Quit |
+
+`Ctrl` means Command on macOS: the window maps egui's cross-platform `command`
+modifier flag onto the shell's control modifier, so one table serves every
+platform. The menu, the shortcut reference, and the key handler all read the same
+table, and a test asserts no two bindings share a chord. `View` menu visibility
+toggles deliberately have no chord of their own: `Ctrl+1`–`Ctrl+4` show and focus,
+whereas the menu toggles visibility, and showing both in a menu would imply the key
+does something it does not.
+
+### Command pipeline
+
+Menus, panel headers, and key presses all produce a `core::input::Action`. `ui.rs`
+has exactly one `apply` method that mutates state for a command. There is no second
+path that changes the workspace from a widget, which is how a menu and a shortcut
+are kept from drifting apart.
+
+### What is deliberately not in the shell
+
+No placeholder menu items: `File` contains only Quit. New, Open, and Save appear
+when the project format exists in Stage 2, and the Media panel says so. There are no
+transport buttons, no timeline ruler, no import button, and no settings dialog,
+because none of them could work yet. A disabled-looking entry would imply the
+feature is one release away and that its shape is settled, which is not true.
+
+### Identity
+
+The palette is defined in one module: ember `#E87A3D` as the accent, deep ember for
+selection, charcoal `#101115` canvas, `#1A1C22` panels, `#0C0D10` chrome, and warm
+off-white text. The wordmark is set in type; there are no icon or artwork assets
+yet, so there is nothing whose licensing needs checking. No Adobe asset, colour-coded
+layout, or brand mark is imitated.
+
+### Layout persistence
+
+Panel sizes survive within a session but not across restarts, because persistence
+needs eframe's `persistence` feature and a decision about where user state lives.
+Saved workspaces and a shortcut editor are Stage 8 ("workspace behaviour"), so this
+is deferred rather than forgotten.
 
 ## Threading and responsiveness
 
@@ -123,9 +218,15 @@ mutated on the UI thread.
 
 - **Core:** unit tests plus doc tests, all runnable headless — `cargo test
   --workspace` needs no display and no GPU.
-- **App:** kept thin on purpose. Behaviour that can be tested belongs in `core`;
-  a UI feature that cannot be checked without a human being is written carefully
-  and reported as manually verified or unverified, never as tested.
+- **App:** the shell's interactions are tested headlessly with `egui_kittest`, a
+  dev-only dependency (MIT OR Apache-2.0). It runs the real `draw` method in a
+  real `egui::Context` without a window or GPU: the tests click menu items and
+  panel headers and press keys, then assert on the resulting state and on the
+  accessibility tree. That is what lets "implemented controls work" be verified
+  in CI rather than by eye. What it cannot check is what the window *looks* like;
+  visual appearance still needs a human or a screenshot review.
+- **App:** behaviour that can be tested belongs in `core` even when the app could
+  test it, which is why the focus rules and the binding table live there.
 - **Later:** round-trip tests for project save/load, and export output validation
   rather than trusting a success message.
 
