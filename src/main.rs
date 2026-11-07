@@ -15,8 +15,6 @@ fn main() -> eframe::Result<()> {
     eframe::run_native(
         "FireEffects",
         options,
-        Box::new(|creation_context| {
-            Ok(Box::new(FireEffectsApp::new(creation_context)))
-        }),
+        Box::new(|creation_context| Ok(Box::new(FireEffectsApp::new(creation_context)))),
     )
 }
