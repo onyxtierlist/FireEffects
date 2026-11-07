@@ -12,6 +12,10 @@ pub enum Error {
     ZeroFrameRateNumerator,
     /// A frame rate was constructed with a denominator of zero.
     ZeroFrameRateDenominator,
+    /// A hidden panel was asked to take focus.
+    PanelNotVisible,
+    /// Hiding the panel would leave the workspace with no visible panel.
+    LastVisiblePanel,
 }
 
 impl fmt::Display for Error {
@@ -21,6 +25,8 @@ impl fmt::Display for Error {
             Self::ZeroFrameRateDenominator => {
                 f.write_str("frame rate denominator must not be zero")
             }
+            Self::PanelNotVisible => f.write_str("a hidden panel cannot take focus"),
+            Self::LastVisiblePanel => f.write_str("the last visible panel cannot be hidden"),
         }
     }
 }

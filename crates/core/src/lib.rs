@@ -6,6 +6,10 @@
 
 mod error;
 mod frame_rate;
+mod input;
+mod workspace;
 
 pub use error::{Error, Result};
 pub use frame_rate::FrameRate;
+pub use input::{Action, BINDINGS, Binding, Key, Modifiers, binding_for, resolve};
+pub use workspace::{Panel, Workspace};

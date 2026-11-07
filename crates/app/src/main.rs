@@ -1,9 +1,14 @@
 //! FireEffects desktop entry point.
 //!
-//! Stage 0 keeps this deliberately small: create a native window, apply the
-//! application identity, and hand over to the UI module. There are no documents,
-//! media, or editing features yet.
+//! Stage 1 keeps this deliberately small: create the editor window with the
+//! configured renderer, apply the application identity, and hand over to the shell.
+//! There are no documents, media, or editing features yet.
 
+mod dialogs;
+mod keys;
+mod menu;
+mod panels;
+mod theme;
 mod ui;
 
 use eframe::egui;
@@ -13,8 +18,8 @@ fn main() -> eframe::Result {
         renderer: eframe::Renderer::Wgpu,
         viewport: egui::ViewportBuilder::default()
             .with_title("FireEffects")
-            .with_inner_size([1100.0, 720.0])
-            .with_min_inner_size([760.0, 480.0]),
+            .with_inner_size([1280.0, 800.0])
+            .with_min_inner_size([960.0, 600.0]),
         ..Default::default()
     };
 
