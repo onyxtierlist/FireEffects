@@ -1,0 +1,10 @@
+[package]
+name = "fireeffects"
+version = "0.1.0"
+edition = "2021"
+description = "An independent Rust-first desktop editor for video and motion graphics."
+license = "MIT"
+publish = false
+
+[dependencies]
+eframe = { version = "0.31", default-features = false, features = ["default_fonts", "glow", "wayland", "x11"] }
