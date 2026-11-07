@@ -1,0 +1,18 @@
+[workspace]
+resolver = "3"
+members = ["crates/app", "crates/core"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.95"
+repository = "https://github.com/onyxtierlist/FireEffects"
+
+[workspace.dependencies]
+fireeffects-core = { path = "crates/core", version = "0.1.0" }
+eframe = "0.37"
+
+# Deny `unsafe` by default. A crate that genuinely needs it must opt in
+# explicitly so the decision is visible in review.
+[workspace.lints.rust]
+unsafe_code = "deny"
