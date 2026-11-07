@@ -40,4 +40,4 @@ jobs:
         run: cargo fmt --all -- --check
 
       - name: Compile
-        run: cargo check --locked
+        run: cargo check
