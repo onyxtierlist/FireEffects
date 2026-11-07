@@ -18,7 +18,9 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         match self {
             Self::ZeroFrameRateNumerator => f.write_str("frame rate numerator must not be zero"),
-            Self::ZeroFrameRateDenominator => f.write_str("frame rate denominator must not be zero"),
+            Self::ZeroFrameRateDenominator => {
+                f.write_str("frame rate denominator must not be zero")
+            }
         }
     }
 }
