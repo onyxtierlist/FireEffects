@@ -1,0 +1,23 @@
+[package]
+name = "fireeffects-app"
+description = "FireEffects desktop application"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+repository.workspace = true
+
+[[bin]]
+name = "fireeffects"
+path = "src/main.rs"
+
+[dependencies]
+fireeffects-core.workspace = true
+eframe.workspace = true
+
+# Headless harness for the shell's interaction tests: it runs egui without a
+# window or GPU, so menu, focus, and shortcut behaviour is verified in CI.
+[dev-dependencies]
+egui_kittest = { version = "0.37", default-features = false }
+
+[lints]
+workspace = true

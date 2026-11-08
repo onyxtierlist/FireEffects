@@ -12,7 +12,7 @@ permissions:
 
 jobs:
   check:
-    name: Format and compile
+    name: Format, build, test, and lint
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
@@ -39,6 +39,11 @@ jobs:
       - name: Check formatting
         run: cargo fmt --all -- --check
 
-      - name: Compile
-        if: always()
-        run: cargo check
+      - name: Compile workspace
+        run: cargo check --workspace
+
+      - name: Run tests
+        run: cargo test --workspace
+
+      - name: Run Clippy
+        run: cargo clippy --workspace --all-targets --all-features -- -D warnings
