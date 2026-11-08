@@ -393,8 +393,9 @@ impl FireEffectsApp {
             }
         };
 
+        // Only the project's own file may be replaced without asking again.
         let overwrite = self.project_path.as_ref() == Some(&path);
-        if self.write_project_to(&path, false) {
+        if self.write_project_to(&path, overwrite) {
             self.dialogs.save_as = false;
             self.project_path = Some(path);
         }
@@ -839,6 +840,8 @@ mod tests {
         let notice = state.notice.clone().expect("a notice");
         assert!(notice.contains("Imported 1 media file"), "{notice}");
         assert!(notice.contains("notes.txt was skipped"), "{notice}");
+        assert!(notice.ends_with('.'), "{notice}");
+        assert!(!notice.contains(".."), "one full stop, not two: {notice}");
     }
 
     #[test]
