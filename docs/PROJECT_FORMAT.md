@@ -55,14 +55,32 @@ retained as a temporary backup until the new file is in place. Save As does not
 overwrite a different existing file; choose a new path or open that file first.
 
 Project files store media paths as references. Saving never moves, deletes, or
-rewrites source media. Media import and missing-media relinking are subsequent
-Stage 2 work.
+rewrites source media.
+
+Media inside the project file's directory is stored relative, with `/` separators, so
+a project folder can be moved or copied and still find its media. Media anywhere else
+is stored as the absolute path the user chose. Saving re-expresses every reference
+for the destination, so Save As keeps a project self-contained when its media travels
+with it. There is no separate relative flag: an absolute path is its own marker.
+
+## Media references
+
+Media items carry an id, the stored path, a display name, and a kind (video, audio,
+or image). Types are classified by file extension only: nothing is decoded, because
+the media backend is still Stage 4's decision. A project that lists media this build
+cannot decode is still a valid project.
+
+Whether a file is currently present, and its size, are never written to the project
+file. They are recomputed when the project is opened, and a media file that has moved
+is reported with a warning and can be relinked to a new location without changing its
+id.
 
 ## Current limitations
 
-- Paths are entered directly in project dialogs; native file pickers are not
-  included yet.
-- Autosave/recovery is intentionally deferred until dirty-state tracking and
-  crash-safe recovery behavior can be tested end-to-end.
-- There is no media importer yet; projects can persist model data, but the UI
-  does not yet create media entries.
+- Media is listed but not decoded; preview and metadata such as duration or frame
+  size arrive with the media backend in Stage 4.
+- Autosave/recovery is intentionally deferred until recovery behaviour and crash
+  tests can be run end-to-end. The unsaved-changes question is the interim
+  protection.
+- Project dialogs accept a typed path; the `Browse…` button uses the platform file
+  dialog, which needs a desktop portal on Linux.
