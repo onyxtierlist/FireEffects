@@ -69,7 +69,9 @@ impl FireEffectsApp {
                 .default_size(260.0)
                 .min_size(180.0)
                 .frame(surface(theme::SURFACE))
-                .show(ui, |ui| draw_panel(ui, Panel::Media, workspace, self.project.as_ref(), action));
+                .show(ui, |ui| {
+                    draw_panel(ui, Panel::Media, workspace, self.project.as_ref(), action)
+                });
         }
 
         if workspace.is_visible(Panel::Inspector) {
@@ -79,7 +81,13 @@ impl FireEffectsApp {
                 .min_size(180.0)
                 .frame(surface(theme::SURFACE))
                 .show(ui, |ui| {
-                    draw_panel(ui, Panel::Inspector, workspace, self.project.as_ref(), action);
+                    draw_panel(
+                        ui,
+                        Panel::Inspector,
+                        workspace,
+                        self.project.as_ref(),
+                        action,
+                    );
                 });
         }
 
@@ -90,14 +98,22 @@ impl FireEffectsApp {
                 .min_size(120.0)
                 .frame(surface(theme::SURFACE))
                 .show(ui, |ui| {
-                    draw_panel(ui, Panel::Timeline, workspace, self.project.as_ref(), action);
+                    draw_panel(
+                        ui,
+                        Panel::Timeline,
+                        workspace,
+                        self.project.as_ref(),
+                        action,
+                    );
                 });
         }
 
         if workspace.is_visible(Panel::Preview) {
             egui::CentralPanel::default()
                 .frame(surface(theme::CANVAS))
-                .show(ui, |ui| draw_panel(ui, Panel::Preview, workspace, self.project.as_ref(), action));
+                .show(ui, |ui| {
+                    draw_panel(ui, Panel::Preview, workspace, self.project.as_ref(), action)
+                });
         }
     }
 
@@ -113,7 +129,11 @@ impl FireEffectsApp {
             );
 
             if let Some(project) = &self.project {
-                let state = if self.project_dirty { " · Unsaved" } else { " · Saved" };
+                let state = if self.project_dirty {
+                    " · Unsaved"
+                } else {
+                    " · Saved"
+                };
                 ui.label(
                     egui::RichText::new(format!("{}{}", project.name, state))
                         .color(theme::TEXT_DIM),
@@ -147,7 +167,8 @@ impl FireEffectsApp {
             Action::FocusPrevious => self.workspace.focus_previous(),
             Action::NewProject => {
                 if self.project_dirty {
-                    self.notice = Some("Save the current project before creating another".to_owned());
+                    self.notice =
+                        Some("Save the current project before creating another".to_owned());
                 } else {
                     self.dialogs.new_project_name = "Untitled".to_owned();
                     self.dialogs.new_project = true;
@@ -155,7 +176,8 @@ impl FireEffectsApp {
             }
             Action::OpenProject => {
                 if self.project_dirty {
-                    self.notice = Some("Save the current project before opening another".to_owned());
+                    self.notice =
+                        Some("Save the current project before opening another".to_owned());
                 } else {
                     self.dialogs.open_project = true;
                 }
@@ -163,9 +185,15 @@ impl FireEffectsApp {
             Action::SaveProject => self.save_current_project(),
             Action::SaveProjectAs => {
                 if self.project.is_some() {
-                    self.dialogs.save_project_path = self.project_path.as_ref()
+                    self.dialogs.save_project_path = self
+                        .project_path
+                        .as_ref()
                         .map(|path| path.display().to_string())
-                        .or_else(|| self.project.as_ref().map(|project| format!("{}.firefx", project.name)))
+                        .or_else(|| {
+                            self.project
+                                .as_ref()
+                                .map(|project| format!("{}.firefx", project.name))
+                        })
                         .unwrap_or_default();
                     self.dialogs.save_as = true;
                 } else {

@@ -33,14 +33,12 @@ pub fn normalize_save_path(path: &Path) -> Result<PathBuf, String> {
 /// Read, decode, and validate a project without changing the source file.
 pub fn read_project(path: &Path) -> Result<Project, String> {
     validate_extension(path)?;
-    let metadata = fs::metadata(path)
-        .map_err(|error| format!("could not read file metadata: {error}"))?;
+    let metadata = fs::metadata(path).map_err(|error| format!("could not read file metadata: {error}"))?;
     if metadata.len() > MAX_PROJECT_FILE_BYTES {
         return Err("project file is larger than the 64 MiB safety limit".to_owned());
     }
 
-    let bytes =
-        fs::read(path).map_err(|error| format!("could not read project file: {error}"))?;
+    let bytes = fs::read(path).map_err(|error| format!("could not read project file: {error}"))?;
     decode_project(&bytes).map_err(|error| error.to_string())
 }
 
@@ -75,9 +73,7 @@ fn atomic_write(destination: &Path, bytes: &[u8]) -> std::io::Result<()> {
         .unwrap_or_else(|| Path::new("."));
     let file_name = destination
         .file_name()
-        .ok_or_else(|| {
-            std::io::Error::new(std::io::ErrorKind::InvalidInput, "missing file name")
-        })?
+        .ok_or_else(|| std::io::Error::new(std::io::ErrorKind::InvalidInput, "missing file name"))?
         .to_string_lossy();
     let suffix = std::process::id();
     let temporary = parent.join(format!(".{file_name}.{suffix}.tmp"));

@@ -48,10 +48,10 @@ impl fmt::Display for ProjectFileError {
             Self::UnsupportedFormat(format) => write!(f, "unsupported project format: {format}"),
             Self::UnsupportedVersion(version) => {
                 write!(f, "project version {version} is not supported")
-            },
+            }
             Self::InvalidProject(error) => {
                 write!(f, "project data failed validation: {error:?}")
-            },
+            }
         }
     }
 }
@@ -60,7 +60,9 @@ impl std::error::Error for ProjectFileError {}
 
 /// Encode a validated project as a pretty-printed native project document.
 pub fn encode_project(project: &Project) -> Result<Vec<u8>, ProjectFileError> {
-    project.validate().map_err(ProjectFileError::InvalidProject)?;
+    project
+        .validate()
+        .map_err(ProjectFileError::InvalidProject)?;
     let document = ProjectDocument {
         format: PROJECT_FORMAT_ID,
         version: PROJECT_FORMAT_VERSION,
@@ -82,7 +84,9 @@ pub fn decode_project(bytes: &[u8]) -> Result<Project, ProjectFileError> {
     }
     let project: Project = serde_json::from_value(header.project)
         .map_err(|error| ProjectFileError::InvalidDocument(error.to_string()))?;
-    project.validate().map_err(ProjectFileError::InvalidProject)?;
+    project
+        .validate()
+        .map_err(ProjectFileError::InvalidProject)?;
     Ok(project)
 }
 
@@ -119,7 +123,10 @@ mod tests {
     fn project_round_trips_without_losing_data() {
         let original = sample_project();
         let bytes = encode_project(&original).expect("valid project should encode");
-        assert_eq!(decode_project(&bytes).expect("document should decode"), original);
+        assert_eq!(
+            decode_project(&bytes).expect("document should decode"),
+            original
+        );
     }
 
     #[test]
@@ -160,7 +167,9 @@ mod tests {
         let bytes = serde_json::to_vec(&document).expect("test document should encode");
         assert!(matches!(
             decode_project(&bytes),
-            Err(ProjectFileError::InvalidProject(ProjectValidationError::InvalidResolution))
+            Err(ProjectFileError::InvalidProject(
+                ProjectValidationError::InvalidResolution
+            ))
         ));
     }
 }

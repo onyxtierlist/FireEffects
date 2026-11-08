@@ -124,7 +124,10 @@ fn shortcuts(ui: &mut egui::Ui) {
     ui.add_space(4.0);
     hint(ui, "On macOS, Ctrl means Command.");
     hint(ui, "Click a panel header to focus it.");
-    hint(ui, "Panel visibility can also be toggled from the View menu.");
+    hint(
+        ui,
+        "Panel visibility can also be toggled from the View menu.",
+    );
 }
 
 fn about(ui: &mut egui::Ui) {
@@ -156,14 +159,19 @@ fn about(ui: &mut egui::Ui) {
     ui.separator();
     ui.add_space(4.0);
     hint(ui, "Not affiliated with Adobe or any other vendor.");
-    hint(ui, "Licence not chosen yet; see docs/ARCHITECTURE.md in the repository.");
+    hint(
+        ui,
+        "Licence not chosen yet; see docs/ARCHITECTURE.md in the repository.",
+    );
 }
 
 /// What a command does, in the words used by the shortcut reference.
 fn describe(action: Action) -> String {
     match action {
         Action::TogglePanel(panel) => format!("Show or hide the {} panel", panels::title(panel)),
-        Action::ShowPanel(panel) => format!("Show the {} panel and give it focus", panels::title(panel)),
+        Action::ShowPanel(panel) => {
+            format!("Show the {} panel and give it focus", panels::title(panel))
+        }
         Action::FocusNext => "Focus the next visible panel".to_owned(),
         Action::FocusPrevious => "Focus the previous visible panel".to_owned(),
         Action::NewProject => "Open the new-project dialog".to_owned(),

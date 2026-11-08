@@ -71,7 +71,11 @@ pub fn draw(
 
     if panel == Panel::Media {
         if let Some(project) = project {
-            ui.label(egui::RichText::new(&project.name).strong().color(theme::TEXT));
+            ui.label(
+                egui::RichText::new(&project.name)
+                    .strong()
+                    .color(theme::TEXT),
+            );
             ui.label(
                 egui::RichText::new(format!(
                     "{} × {} · {}/{} fps",
