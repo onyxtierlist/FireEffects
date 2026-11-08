@@ -31,7 +31,7 @@ The goal is a coherent, usable workflow—not disconnected demo screens. Every v
 
 ## Current implementation status
 
-The Stage 1 editor shell is complete. The Stage 2 project-persistence foundation now supports creating projects and saving/opening versioned `.firefx` files with validation. Media import, metadata extraction, relinking, and recovery remain to be implemented. See [the project format specification](docs/PROJECT_FORMAT.md) for the current on-disk schema and limitations.
+The Stage 1 editor shell is complete. Stage 2 supports creating projects, saving and opening validated versioned `.firefx` files, importing media with its type and size, and relinking media that has moved. Media decoding, autosave, and recovery remain to be implemented. See [the project format specification](docs/PROJECT_FORMAT.md) for the current on-disk schema and limitations.
 
 ## 2. End-to-end development roadmap
 
