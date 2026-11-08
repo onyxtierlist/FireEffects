@@ -1,17 +1,18 @@
 # FireEffects architecture
 
-Status: **Stage 2 (Projects and media), project-persistence foundation implemented**. The native versioned project format and create/open/save workflow are in place; media import is still pending. This document records what exists, what was chosen deliberately, and what is intentionally still undecided. Update it in the same change that alters one of those decisions.
+Status: **Stage 2 (Projects and media) implemented**. The versioned project format, create/open/save, media import with metadata, and missing-media relinking are in place; preview, timeline, and export are not. This document records what exists, what was chosen deliberately, and what is intentionally still undecided. Update it in the same change that alters one of those decisions.
 
 ## What exists today
 
 - A Cargo workspace with two crates.
-- `crates/app`: the editor shell, project dialogs, and filesystem-safe project
-  persistence.
-- `crates/core`: platform-independent workspace, input, project, and versioned
-  project-serialization models.
+- `crates/app`: the editor shell, project dialogs, filesystem-safe project
+  persistence, the media library, and native file pickers.
+- `crates/core`: platform-independent workspace, input, project, versioned
+  project-serialization models, and media path/format rules.
 
-Media import, the compositor, and export are not implemented yet. The File menu
-now provides working New, Open, Save, and Save As project actions.
+Media is imported, listed, and relinked but not decoded; the compositor and export
+are not implemented yet. The File menu provides New, Open, Save, Save As, Import
+Media, and Close Project, and the media panel lists what the project refers to.
 
 ## Crate layout and dependency direction
 
@@ -31,8 +32,10 @@ fireeffects-app  ──▶  fireeffects-core
   | `ui.rs` | Shell layout, command dispatch, status bar, `eframe::App`. |
   | `panels.rs` | The four panels and what each shows today. Stateless. |
   | `menu.rs` | The menu bar. Returns a command, applies nothing. |
-  | `dialogs.rs` | Project dialogs, keyboard-shortcut reference, and About windows. |
+  | `dialogs.rs` | Project dialogs, the unsaved-changes question, shortcut reference, and About. |
   | `project_io.rs` | Bounded project loading and safe project-file replacement. |
+  | `library.rs` | Media entries, their on-disk status, import, and relinking. |
+  | `files.rs` | File pickers: native dialogs, and the scripted picker tests use. |
   | `keys.rs` | Maps egui input onto the core command table. |
   | `theme.rs` | Palette and the egui style applied at start-up. |
 - **Dependency rule:** `core` never depends on `app`, and never on windowing,
@@ -82,8 +85,9 @@ compositor does not also have to justify a second graphics stack.
 
 ### Media I/O: not decided yet
 
-Nothing decodes media yet, and the decision belongs to the stage that first
-imports a file (Stage 2) or previews one (Stage 4). Criteria for that decision:
+Stage 2 imports media by reference: it records where a file is, never what is inside
+it. Decoding is needed to preview or to read durations and frame sizes, so the
+decision belongs to Stage 4. Criteria for that decision:
 
 1. Accurate seeking, not just sequential playback.
 2. Coverage of the formats real editors receive from cameras.
@@ -108,11 +112,73 @@ application owns filesystem access and safe replacement. Unknown fields and
 unsupported versions are rejected to avoid silent data loss. See
 `docs/PROJECT_FORMAT.md` for the on-disk schema and current limitations.
 
+Media references are stored relative to the project file when the media sits inside
+the project's directory, and absolute otherwise. Saving re-expresses every
+reference for the new location, so a project folder can be moved or copied and still
+find its media. `core::media` owns both directions of that rule; the format stores no
+absolute-versus-relative flag, because an absolute path is its own marker.
+
 ### Packaging and distribution: not decided yet
 
 Decided once there is something worth shipping (after Stage 7). The likely shape is
 `cargo-dist` for archives and platform installers, plus code signing and
 notarization per platform. Not set up yet.
+
+## Stage 2 media handling
+
+### Import and metadata
+
+`core::media` classifies a file by extension and `library.rs` records it as a media
+asset with an id, the stored path, the display name, and the kind. Nothing decodes
+the file: the media backend is still Stage 4's decision, and a project that lists
+undecodable media is still a valid project. What the panel shows — kind and file
+size — is read from the filesystem and shown honestly as such.
+
+The library never guesses. A file with an unrecognised extension is refused with a
+reason rather than imported and hoped over, and importing the same path twice adds
+it once.
+
+### Missing media
+
+A project can outlive its media. Every reference is resolved against the project
+file's directory and probed when the project is opened or changed; anything missing
+is shown in the warning colour, counted in the panel summary and the status bar, and
+offered a `Locate…` button that rewrites the reference. Relinking keeps the media
+id, so references from future clips follow the new file instead of breaking.
+
+A project with missing media still opens, still validates, and still saves. Refusing
+to open work because one file moved would be the worst possible behaviour.
+
+Presence is interface state and is never serialised: the project records where media
+is *supposed* to be, not whether it is there on this machine.
+
+### Unsaved changes are never discarded silently
+
+New, open, close, and quit all pass through one question when the project differs
+from its file, and so does the window's own close button: `ui.rs` inspects
+`close_requested` and cancels the close to ask first. The question offers Save,
+Discard changes, and Cancel. Dismissing the window means Cancel, because doing
+nothing is the safe answer.
+
+A project that has never been saved has nowhere to save to, so Save from that
+question opens Save As and drops the pending request rather than repeating it
+forever; the user runs the command again once the project has a home.
+
+### Saving
+
+`project_io::write_project` writes a temporary sibling, syncs it, and renames it into
+place, keeping the previous file as a backup until the new one is in place. It also
+refuses to replace a file that is not the open project unless overwriting is
+intended. `ui.rs` rewrites media references on a *copy* of the project, so a failed
+save cannot leave the open project describing a location it was never written to.
+
+### Autosave and recovery: deliberately absent
+
+The README allows autosave "only when safe and tested". A recovery feature that
+writes without being asked is exactly the kind of feature that corrupts work when it
+is half-built: it needs a recovery question, a location policy, and crash tests that
+do not exist yet. What is in place instead is the foundation it needs — atomic
+saves, a validated format, and an unsaved-changes question.
 
 ## The editor shell (Stage 1)
 
@@ -154,6 +220,10 @@ Keyboard shortcuts are declared once, in `core::input::BINDINGS`:
 | --- | --- |
 | `Ctrl+1` … `Ctrl+4` | Show the Media, Preview, Timeline, or Inspector panel and focus it |
 | `F6` / `Shift+F6` | Focus the next / previous visible panel |
+| `Ctrl+N` / `Ctrl+O` | New project / open a project file |
+| `Ctrl+S` / `Ctrl+Shift+S` | Save / save as |
+| `Ctrl+I` | Import media |
+| `Ctrl+W` | Close the project |
 | `F1` | Open the shortcut reference |
 | `Ctrl+Q` | Quit |
 
@@ -174,11 +244,12 @@ are kept from drifting apart.
 
 ### What is deliberately not in the shell
 
-No placeholder menu items: `File` contains only Quit. New, Open, and Save appear
-when the project format exists in Stage 2, and the Media panel says so. There are no
-transport buttons, no timeline ruler, no import button, and no settings dialog,
-because none of them could work yet. A disabled-looking entry would imply the
-feature is one release away and that its shape is settled, which is not true.
+No placeholder controls. `File` holds the project and media commands that work, the
+Media panel's import button imports, and the panels that have no features say which
+stage brings them. There are still no transport buttons, no timeline ruler, and no
+settings dialog, because none of them could work yet: a disabled-looking entry would
+imply the feature is one release away and that its shape is settled, which is not
+true.
 
 ### Identity
 
@@ -225,14 +296,23 @@ mutated on the UI thread.
   visual appearance still needs a human or a screenshot review.
 - **App:** behaviour that can be tested belongs in `core` even when the app could
   test it, which is why the focus rules and the binding table live there.
-- **Later:** round-trip tests for project save/load, and export output validation
-  rather than trusting a success message.
+- **App, project and media behaviour:** the file pickers sit behind the
+  `FilePicker` trait, so tests install a scripted picker and drive the real menu
+  items, dialogs, buttons, and shortcuts against a temporary directory. That is how
+  "import, save, close, reopen, recover the same state" is verified without a
+  desktop: the tests write a real project file, remove a real media file, and reopen
+  both. The format has round-trip tests, and each refusal has its own test — wrong
+  marker, newer version, invalid data, unparseable text.
+- **Accessibility:** the headless harness fails a test when a widget has no
+  accessible name, which is why the project dialogs label their text fields. That
+  check is worth keeping: an unnamed field is unusable with a screen reader.
+- **Later:** export output validation rather than trusting a success message.
 
 ## Open decisions for the owner
 
 1. **Project licence.** There is no `LICENSE` file yet. Every dependency so far is
    permissive (MIT OR Apache-2.0), so no choice is forced.
-2. **Media backend.** See the criteria above; this decides what Stage 2 can import.
+2. **Media backend.** See the criteria above; this decides what Stage 4 can preview.
 3. **Compositing approach.** Whether `wgpu` used directly is enough, or a dedicated
    renderer crate is warranted at Stage 5.
 4. **Platform targets.** Whether the first release supports Windows, macOS, and
