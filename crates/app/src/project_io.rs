@@ -8,7 +8,7 @@ use std::{
     path::{Path, PathBuf},
 };
 
-use fireeffects_core::{decode_project, encode_project, Project};
+use fireeffects_core::{Project, decode_project, encode_project};
 
 const MAX_PROJECT_FILE_BYTES: u64 = 64 * 1024 * 1024;
 
@@ -33,7 +33,8 @@ pub fn normalize_save_path(path: &Path) -> Result<PathBuf, String> {
 /// Read, decode, and validate a project without changing the source file.
 pub fn read_project(path: &Path) -> Result<Project, String> {
     validate_extension(path)?;
-    let metadata = fs::metadata(path).map_err(|error| format!("could not read file metadata: {error}"))?;
+    let metadata =
+        fs::metadata(path).map_err(|error| format!("could not read file metadata: {error}"))?;
     if metadata.len() > MAX_PROJECT_FILE_BYTES {
         return Err("project file is larger than the 64 MiB safety limit".to_owned());
     }
