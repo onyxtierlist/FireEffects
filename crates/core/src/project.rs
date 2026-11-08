@@ -160,14 +160,13 @@ impl Project {
                     return Err(ProjectValidationError::InvalidClipDuration(clip.id));
                 }
 
-                let end_frame = clip.start_frame.checked_add(clip.duration_frames).ok_or(
-                    ProjectValidationError::TimelinePositionOverflow(clip.id),
-                )?;
+                let end_frame = clip
+                    .start_frame
+                    .checked_add(clip.duration_frames)
+                    .ok_or(ProjectValidationError::TimelinePositionOverflow(clip.id))?;
 
                 if end_frame > self.settings.duration_frames {
-                    return Err(ProjectValidationError::ClipOutsideProject {
-                        clip_id: clip.id,
-                    });
+                    return Err(ProjectValidationError::ClipOutsideProject { clip_id: clip.id });
                 }
 
                 let media_kind = self
