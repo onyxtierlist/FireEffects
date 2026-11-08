@@ -46,8 +46,12 @@ impl fmt::Display for ProjectFileError {
         match self {
             Self::InvalidDocument(message) => write!(f, "invalid project document: {message}"),
             Self::UnsupportedFormat(format) => write!(f, "unsupported project format: {format}"),
-            Self::UnsupportedVersion(version) => write!(f, "project version {version} is not supported"),
-            Self::InvalidProject(error) => write!(f, "project data failed validation: {error:?}"),
+            Self::UnsupportedVersion(version) => {
+                write!(f, "project version {version} is not supported")
+            },
+            Self::InvalidProject(error) => {
+                write!(f, "project data failed validation: {error:?}")
+            },
         }
     }
 }
@@ -121,18 +125,27 @@ mod tests {
     #[test]
     fn rejects_another_format_identifier() {
         let bytes = br#"{"format":"other","version":1,"project":{}}"#;
-        assert!(matches!(decode_project(bytes), Err(ProjectFileError::UnsupportedFormat(format)) if format == "other"));
+        assert!(matches!(
+            decode_project(bytes),
+            Err(ProjectFileError::UnsupportedFormat(format)) if format == "other"
+        ));
     }
 
     #[test]
     fn rejects_unsupported_schema_versions() {
         let bytes = br#"{"format":"fireeffects","version":99,"project":{}}"#;
-        assert!(matches!(decode_project(bytes), Err(ProjectFileError::UnsupportedVersion(99))));
+        assert!(matches!(
+            decode_project(bytes),
+            Err(ProjectFileError::UnsupportedVersion(99))
+        ));
     }
 
     #[test]
     fn rejects_malformed_json() {
-        assert!(matches!(decode_project(b"{not json"), Err(ProjectFileError::InvalidDocument(_))));
+        assert!(matches!(
+            decode_project(b"{not json"),
+            Err(ProjectFileError::InvalidDocument(_))
+        ));
     }
 
     #[test]

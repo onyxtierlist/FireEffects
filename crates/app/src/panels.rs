@@ -25,7 +25,7 @@ fn empty_state(panel: Panel) -> [&'static str; 2] {
     match panel {
         Panel::Media => [
             "No project open",
-            "Project files, media import, and metadata arrive in Stage 2.",
+            "Create or open a project from the File menu. Media import is the next Stage 2 step.",
         ],
         Panel::Preview => [
             "Nothing to preview",

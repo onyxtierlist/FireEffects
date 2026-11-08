@@ -1,9 +1,8 @@
 //! The editor shell: window layout, command dispatch, and the status bar.
 //!
-//! The shell owns no media and no project yet. It owns the workspace layout, which
-//! panel has focus, and the help windows. Menus, keyboard shortcuts, and clicks all
-//! produce the same [`Action`] values, which are applied in one place, so the
-//! interface cannot behave one way from a menu and another way from a key press.
+//! The shell owns the workspace, current project, project dialogs, and help windows.
+//! Menus, keyboard shortcuts, and clicks all produce the same [`Action`] values,
+//! which are applied in one place so the interface cannot drift between input paths.
 
 use std::path::PathBuf;
 
@@ -166,7 +165,8 @@ impl FireEffectsApp {
                 if self.project.is_some() {
                     self.dialogs.save_project_path = self.project_path.as_ref()
                         .map(|path| path.display().to_string())
-                        .unwrap_or_else(|| "Untitled.firefx".to_owned());
+                        .or_else(|| self.project.as_ref().map(|project| format!("{}.firefx", project.name)))
+                        .unwrap_or_default();
                     self.dialogs.save_as = true;
                 } else {
                     self.notice = Some("No project is open".to_owned());
