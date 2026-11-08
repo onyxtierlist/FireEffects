@@ -211,7 +211,11 @@ pub const BINDINGS: &[Binding] = &[
         action: Action::SaveProject,
     },
     Binding {
-        modifiers: Modifiers::CTRL,
+        modifiers: Modifiers {
+            ctrl: true,
+            shift: true,
+            alt: false,
+        },
         key: Key::S,
         action: Action::SaveProjectAs,
     },

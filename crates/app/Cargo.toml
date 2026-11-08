@@ -14,10 +14,15 @@ path = "src/main.rs"
 fireeffects-core.workspace = true
 eframe.workspace = true
 
+# Native file pickers. The project dialogs also accept a typed path, so the
+# application still works where no desktop portal is available.
+rfd = "0.15"
+
 # Headless harness for the shell's interaction tests: it runs egui without a
 # window or GPU, so menu, focus, and shortcut behaviour is verified in CI.
 [dev-dependencies]
 egui_kittest = { version = "0.37", default-features = false }
+tempfile = "3"
 
 [lints]
 workspace = true

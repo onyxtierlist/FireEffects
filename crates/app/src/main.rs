@@ -1,11 +1,13 @@
 //! FireEffects desktop entry point.
 //!
-//! Stage 1 keeps this deliberately small: create the editor window with the
-//! configured renderer, apply the application identity, and hand over to the shell.
-//! There are no documents, media, or editing features yet.
+//! This stays deliberately small: create the editor window with the configured
+//! renderer, apply the application identity, and hand over to the shell. Project
+//! files, media, and their dialogs live in the shell and the modules beside it.
 
 mod dialogs;
+mod files;
 mod keys;
+mod library;
 mod menu;
 mod panels;
 mod project_io;

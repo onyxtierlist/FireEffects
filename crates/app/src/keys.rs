@@ -8,7 +8,7 @@ use eframe::egui;
 use fireeffects_core::{Action, Key, Modifiers, resolve};
 
 /// The keys the window listens for, and the shell key each one stands for.
-const WATCHED: [(Key, egui::Key); 7] = [
+const WATCHED: [(Key, egui::Key); 12] = [
     (Key::Num1, egui::Key::Num1),
     (Key::Num2, egui::Key::Num2),
     (Key::Num3, egui::Key::Num3),
@@ -16,6 +16,11 @@ const WATCHED: [(Key, egui::Key); 7] = [
     (Key::Q, egui::Key::Q),
     (Key::F1, egui::Key::F1),
     (Key::F6, egui::Key::F6),
+    (Key::N, egui::Key::N),
+    (Key::O, egui::Key::O),
+    (Key::S, egui::Key::S),
+    (Key::W, egui::Key::W),
+    (Key::I, egui::Key::I),
 ];
 
 /// The command for a key pressed this frame, if the shell binds it.

@@ -1,9 +1,8 @@
 //! The menu bar.
 //!
-//! Only commands that work today appear here. Project actions such as New, Open,
-//! and Save arrive with the project format in Stage 2, and their absence is
-//! explained by the Media panel rather than by a disabled menu item that pretends
-//! the feature is one setting away.
+//! Only commands that work today appear here. Commands that need an open project
+//! stay visible and explain themselves in the status bar when used without one,
+//! rather than silently doing nothing.
 
 use eframe::egui;
 use fireeffects_core::{Action, Panel, Workspace, binding_for};
@@ -29,11 +28,17 @@ pub fn bar(ui: &mut egui::Ui, workspace: &Workspace) -> Option<Action> {
                     ("Open Project…", Action::OpenProject),
                     ("Save", Action::SaveProject),
                     ("Save As…", Action::SaveProjectAs),
+                    ("Close Project", Action::CloseProject),
                 ] {
                     if command(ui, label, command_action).clicked() {
                         ui.close();
                         action = Some(command_action);
                     }
+                }
+                ui.separator();
+                if command(ui, "Import Media…", Action::ImportMedia).clicked() {
+                    ui.close();
+                    action = Some(Action::ImportMedia);
                 }
                 ui.separator();
                 if command(ui, "Quit", Action::Quit).clicked() {

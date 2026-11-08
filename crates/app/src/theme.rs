@@ -18,6 +18,8 @@ pub const SURFACE: Color32 = Color32::from_rgb(26, 28, 34);
 pub const CHROME: Color32 = Color32::from_rgb(12, 13, 16);
 /// Primary text.
 pub const TEXT: Color32 = Color32::from_rgb(233, 228, 220);
+/// Something needing attention: missing media, unsaved changes.
+pub const WARNING: Color32 = Color32::from_rgb(226, 168, 74);
 /// Secondary text: hints, empty states, unfocused panel titles.
 pub const TEXT_DIM: Color32 = Color32::from_rgb(143, 141, 135);
 
