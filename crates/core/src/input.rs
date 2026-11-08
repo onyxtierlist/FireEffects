@@ -57,6 +57,16 @@ pub enum Key {
     F1,
     /// The `F6` key.
     F6,
+    /// The `N` key.
+    N,
+    /// The `O` key.
+    O,
+    /// The `S` key.
+    S,
+    /// The `W` key.
+    W,
+    /// The `I` key.
+    I,
 }
 
 impl Key {
@@ -70,6 +80,11 @@ impl Key {
             Self::Q => "Q",
             Self::F1 => "F1",
             Self::F6 => "F6",
+            Self::N => "N",
+            Self::O => "O",
+            Self::S => "S",
+            Self::W => "W",
+            Self::I => "I",
         }
     }
 }
@@ -102,6 +117,18 @@ pub enum Action {
     LoadProject,
     /// Saves the current project to the path in the Save As dialog.
     SaveProjectToPath,
+    /// Closes the project, returning to an empty shell.
+    CloseProject,
+    /// Asks for media files and adds the supported ones to the project.
+    ImportMedia,
+    /// Selects a media item in the project panel.
+    SelectMedia(u64),
+    /// Asks for a new location for a media file the project cannot find.
+    RelinkMedia(u64),
+    /// Fills the open-project dialog from a native file picker.
+    PickProjectFile,
+    /// Fills the Save As dialog from a native file picker.
+    PickSaveLocation,
     /// Opens the keyboard shortcuts window.
     ShowShortcuts,
     /// Opens the About window.
@@ -167,6 +194,36 @@ pub const BINDINGS: &[Binding] = &[
         modifiers: Modifiers::SHIFT,
         key: Key::F6,
         action: Action::FocusPrevious,
+    },
+    Binding {
+        modifiers: Modifiers::CTRL,
+        key: Key::N,
+        action: Action::NewProject,
+    },
+    Binding {
+        modifiers: Modifiers::CTRL,
+        key: Key::O,
+        action: Action::OpenProject,
+    },
+    Binding {
+        modifiers: Modifiers::CTRL,
+        key: Key::S,
+        action: Action::SaveProject,
+    },
+    Binding {
+        modifiers: Modifiers::CTRL,
+        key: Key::S,
+        action: Action::SaveProjectAs,
+    },
+    Binding {
+        modifiers: Modifiers::CTRL,
+        key: Key::W,
+        action: Action::CloseProject,
+    },
+    Binding {
+        modifiers: Modifiers::CTRL,
+        key: Key::I,
+        action: Action::ImportMedia,
     },
     Binding {
         modifiers: Modifiers::NONE,

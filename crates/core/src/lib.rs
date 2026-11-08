@@ -7,6 +7,7 @@
 mod error;
 mod frame_rate;
 mod input;
+mod media;
 mod project;
 mod project_file;
 mod workspace;
@@ -14,6 +15,9 @@ mod workspace;
 pub use error::{Error, Result};
 pub use frame_rate::FrameRate;
 pub use input::{Action, BINDINGS, Binding, Key, Modifiers, binding_for, resolve};
+pub use media::{
+    SUPPORTED_EXTENSIONS, display_name, kind_for_path, resolve_path, resolve_stored, store_path,
+};
 pub use project::{
     Clip, MediaAsset, MediaKind, Project, ProjectSettings, ProjectValidationError, Track, TrackKind,
 };
