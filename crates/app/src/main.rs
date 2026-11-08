@@ -8,6 +8,7 @@ mod dialogs;
 mod keys;
 mod menu;
 mod panels;
+mod project_io;
 mod theme;
 mod ui;
 

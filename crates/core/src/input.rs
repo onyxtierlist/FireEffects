@@ -88,6 +88,20 @@ pub enum Action {
     FocusNext,
     /// Gives focus to the previous visible panel.
     FocusPrevious,
+    /// Opens the new-project dialog.
+    NewProject,
+    /// Opens the project-file dialog.
+    OpenProject,
+    /// Saves the current project to its existing path.
+    SaveProject,
+    /// Opens the Save As dialog.
+    SaveProjectAs,
+    /// Creates a project from the new-project dialog.
+    CreateProject,
+    /// Opens a project from the open-project dialog.
+    LoadProject,
+    /// Saves the current project to the path in the Save As dialog.
+    SaveProjectToPath,
     /// Opens the keyboard shortcuts window.
     ShowShortcuts,
     /// Opens the About window.

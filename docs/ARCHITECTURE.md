@@ -1,21 +1,17 @@
 # FireEffects architecture
 
-Status: **Stage 1 (Editor shell)**. Last reviewed with the repository at the Stage 1
-commit. This document records what exists, what was chosen deliberately, and what
-is intentionally still undecided. Update it in the same change that alters one of
-those decisions.
+Status: **Stage 2 (Projects and media), project-persistence foundation implemented**. The native versioned project format and create/open/save workflow are in place; media import is still pending. This document records what exists, what was chosen deliberately, and what is intentionally still undecided. Update it in the same change that alters one of those decisions.
 
 ## What exists today
 
 - A Cargo workspace with two crates.
-- `crates/app`: the editor shell — a window with a menu bar, the four workspace
-  panels, a status bar, and two help windows.
-- `crates/core`: platform-independent types with no third-party dependencies: the
-  time model, the workspace layout and focus model, and the keyboard command
-  table.
+- `crates/app`: the editor shell, project dialogs, and filesystem-safe project
+  persistence.
+- `crates/core`: platform-independent workspace, input, project, and versioned
+  project-serialization models.
 
-There is no project format, no media pipeline, no compositor, and no exporter. The
-UI does not draw controls for any of those, because they do not work yet.
+Media import, the compositor, and export are not implemented yet. The File menu
+now provides working New, Open, Save, and Save As project actions.
 
 ## Crate layout and dependency direction
 
@@ -35,7 +31,8 @@ fireeffects-app  ──▶  fireeffects-core
   | `ui.rs` | Shell layout, command dispatch, status bar, `eframe::App`. |
   | `panels.rs` | The four panels and what each shows today. Stateless. |
   | `menu.rs` | The menu bar. Returns a command, applies nothing. |
-  | `dialogs.rs` | Keyboard-shortcut reference and About windows. |
+  | `dialogs.rs` | Project dialogs, keyboard-shortcut reference, and About windows. |
+  | `project_io.rs` | Bounded project loading and safe project-file replacement. |
   | `keys.rs` | Maps egui input onto the core command table. |
   | `theme.rs` | Palette and the egui style applied at start-up. |
 - **Dependency rule:** `core` never depends on `app`, and never on windowing,
@@ -103,12 +100,13 @@ GStreamer (strong plugin story, heavier deployment), and platform-native decoder
 Until one is chosen, unsupported media must fail with a clear message rather than
 a guess.
 
-### Project file format: not decided yet
+### Project file format: version 1 JSON
 
-Stage 2 decides the format. The constraints are already fixed by the README:
-documented, versioned, validated on load, migration path for persisted structures,
-and never destructive to user media. No serialization schema is committed to
-before the model's shape is known.
+Native projects use UTF-8 JSON in a `.firefx` file, wrapped in a format identifier
+and schema version. The core crate owns serialization and model validation; the
+application owns filesystem access and safe replacement. Unknown fields and
+unsupported versions are rejected to avoid silent data loss. See
+`docs/PROJECT_FORMAT.md` for the on-disk schema and current limitations.
 
 ### Packaging and distribution: not decided yet
 

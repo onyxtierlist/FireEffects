@@ -24,6 +24,18 @@ pub fn bar(ui: &mut egui::Ui, workspace: &Workspace) -> Option<Action> {
 
         egui::MenuBar::new().ui(ui, |ui| {
             ui.menu_button("File", |ui| {
+                for (label, command_action) in [
+                    ("New Project", Action::NewProject),
+                    ("Open Project…", Action::OpenProject),
+                    ("Save", Action::SaveProject),
+                    ("Save As…", Action::SaveProjectAs),
+                ] {
+                    if command(ui, label, command_action).clicked() {
+                        ui.close();
+                        action = Some(command_action);
+                    }
+                }
+                ui.separator();
                 if command(ui, "Quit", Action::Quit).clicked() {
                     ui.close();
                     action = Some(Action::Quit);

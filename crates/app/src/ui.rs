@@ -5,16 +5,21 @@
 //! produce the same [`Action`] values, which are applied in one place, so the
 //! interface cannot behave one way from a menu and another way from a key press.
 
-use eframe::egui;
-use fireeffects_core::{Action, Panel, Workspace};
+use std::path::PathBuf;
 
-use crate::{dialogs, keys, menu, panels, theme};
+use eframe::egui;
+use fireeffects_core::{Action, Panel, Project, Workspace};
+
+use crate::{dialogs, keys, menu, panels, project_io, theme};
 
 /// The application state.
 #[derive(Default)]
 pub struct FireEffectsApp {
     workspace: Workspace,
     dialogs: dialogs::Dialogs,
+    project: Option<Project>,
+    project_path: Option<PathBuf>,
+    project_dirty: bool,
     /// The last command that could not be carried out, for the status bar.
     notice: Option<String>,
 }
@@ -46,7 +51,9 @@ impl FireEffectsApp {
             .show(ui, |ui| self.status_bar(ui));
 
         self.draw_workspace(ui, &mut action);
-        dialogs::show(ui.ctx(), &mut self.dialogs);
+        if let Some(dialog_action) = dialogs::show(ui.ctx(), &mut self.dialogs) {
+            action = Some(dialog_action);
+        }
 
         if let Some(action) = action {
             self.apply(action, ui.ctx());
@@ -63,7 +70,7 @@ impl FireEffectsApp {
                 .default_size(260.0)
                 .min_size(180.0)
                 .frame(surface(theme::SURFACE))
-                .show(ui, |ui| draw_panel(ui, Panel::Media, workspace, action));
+                .show(ui, |ui| draw_panel(ui, Panel::Media, workspace, self.project.as_ref(), action));
         }
 
         if workspace.is_visible(Panel::Inspector) {
@@ -73,7 +80,7 @@ impl FireEffectsApp {
                 .min_size(180.0)
                 .frame(surface(theme::SURFACE))
                 .show(ui, |ui| {
-                    draw_panel(ui, Panel::Inspector, workspace, action);
+                    draw_panel(ui, Panel::Inspector, workspace, self.project.as_ref(), action);
                 });
         }
 
@@ -84,14 +91,14 @@ impl FireEffectsApp {
                 .min_size(120.0)
                 .frame(surface(theme::SURFACE))
                 .show(ui, |ui| {
-                    draw_panel(ui, Panel::Timeline, workspace, action);
+                    draw_panel(ui, Panel::Timeline, workspace, self.project.as_ref(), action);
                 });
         }
 
         if workspace.is_visible(Panel::Preview) {
             egui::CentralPanel::default()
                 .frame(surface(theme::CANVAS))
-                .show(ui, |ui| draw_panel(ui, Panel::Preview, workspace, action));
+                .show(ui, |ui| draw_panel(ui, Panel::Preview, workspace, self.project.as_ref(), action));
         }
     }
 
@@ -105,6 +112,16 @@ impl FireEffectsApp {
                 .color(theme::EMBER)
                 .strong(),
             );
+
+            if let Some(project) = &self.project {
+                let state = if self.project_dirty { " · Unsaved" } else { " · Saved" };
+                ui.label(
+                    egui::RichText::new(format!("{}{}", project.name, state))
+                        .color(theme::TEXT_DIM),
+                );
+            } else {
+                ui.label(egui::RichText::new("No project open").color(theme::TEXT_DIM));
+            }
 
             if let Some(notice) = &self.notice {
                 ui.label(egui::RichText::new(notice).color(theme::TEXT_DIM));
@@ -129,9 +146,116 @@ impl FireEffectsApp {
             Action::ShowPanel(panel) => self.workspace.reveal(panel),
             Action::FocusNext => self.workspace.focus_next(),
             Action::FocusPrevious => self.workspace.focus_previous(),
+            Action::NewProject => {
+                if self.project_dirty {
+                    self.notice = Some("Save the current project before creating another".to_owned());
+                } else {
+                    self.dialogs.new_project_name = "Untitled".to_owned();
+                    self.dialogs.new_project = true;
+                }
+            }
+            Action::OpenProject => {
+                if self.project_dirty {
+                    self.notice = Some("Save the current project before opening another".to_owned());
+                } else {
+                    self.dialogs.open_project = true;
+                }
+            }
+            Action::SaveProject => self.save_current_project(),
+            Action::SaveProjectAs => {
+                if self.project.is_some() {
+                    self.dialogs.save_project_path = self.project_path.as_ref()
+                        .map(|path| path.display().to_string())
+                        .unwrap_or_else(|| "Untitled.firefx".to_owned());
+                    self.dialogs.save_as = true;
+                } else {
+                    self.notice = Some("No project is open".to_owned());
+                }
+            }
+            Action::CreateProject => {
+                let name = self.dialogs.new_project_name.trim();
+                if name.is_empty() {
+                    self.notice = Some("Enter a project name".to_owned());
+                } else {
+                    self.project = Some(Project::new(name));
+                    self.project_path = None;
+                    self.project_dirty = true;
+                    self.dialogs.new_project = false;
+                    self.notice = Some("New project created; save it to keep your work".to_owned());
+                }
+            }
+            Action::LoadProject => {
+                let path = PathBuf::from(self.dialogs.open_project_path.trim());
+                match project_io::read_project(&path) {
+                    Ok(project) => {
+                        self.project = Some(project);
+                        self.project_path = Some(path);
+                        self.project_dirty = false;
+                        self.dialogs.open_project = false;
+                        self.notice = Some("Project opened".to_owned());
+                    }
+                    Err(error) => self.notice = Some(sentence(error)),
+                }
+            }
+            Action::SaveProjectToPath => self.save_project_as(),
             Action::ShowShortcuts => self.dialogs.shortcuts = true,
             Action::ShowAbout => self.dialogs.about = true,
             Action::Quit => ctx.send_viewport_cmd(egui::ViewportCommand::Close),
+        }
+    }
+
+    fn save_current_project(&mut self) {
+        let Some(path) = self.project_path.clone() else {
+            if let Some(project) = &self.project {
+                self.dialogs.save_project_path = format!("{}.firefx", project.name);
+                self.dialogs.save_as = true;
+            } else {
+                self.notice = Some("No project is open".to_owned());
+            }
+            return;
+        };
+
+        let Some(project) = self.project.as_ref() else {
+            self.notice = Some("No project is open".to_owned());
+            return;
+        };
+
+        match project_io::write_project(&path, project, true) {
+            Ok(()) => {
+                self.project_dirty = false;
+                self.notice = Some("Project saved".to_owned());
+            }
+            Err(error) => self.notice = Some(sentence(error)),
+        }
+    }
+
+    fn save_project_as(&mut self) {
+        let Some(project) = self.project.as_ref() else {
+            self.notice = Some("No project is open".to_owned());
+            return;
+        };
+        let entered = self.dialogs.save_project_path.trim();
+        if entered.is_empty() {
+            self.notice = Some("Enter a destination path".to_owned());
+            return;
+        }
+        let path = match project_io::normalize_save_path(&PathBuf::from(entered)) {
+            Ok(path) => path,
+            Err(error) => {
+                self.notice = Some(sentence(error));
+                return;
+            }
+        };
+        let overwrite = self.project_path.as_ref() == Some(&path);
+
+        match project_io::write_project(&path, project, overwrite) {
+            Ok(()) => {
+                self.project_path = Some(path);
+                self.project_dirty = false;
+                self.dialogs.save_as = false;
+                self.notice = Some("Project saved".to_owned());
+            }
+            Err(error) => self.notice = Some(sentence(error)),
         }
     }
 }
@@ -142,8 +266,14 @@ impl eframe::App for FireEffectsApp {
     }
 }
 
-fn draw_panel(ui: &mut egui::Ui, panel: Panel, workspace: &Workspace, action: &mut Option<Action>) {
-    panels::draw(ui, panel, workspace, action);
+fn draw_panel(
+    ui: &mut egui::Ui,
+    panel: Panel,
+    workspace: &Workspace,
+    project: Option<&Project>,
+    action: &mut Option<Action>,
+) {
+    panels::draw(ui, panel, workspace, project, action);
 }
 
 /// A panel surface: a fill plus the margin that keeps text off the resize handles.

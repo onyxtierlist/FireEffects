@@ -3,7 +3,10 @@
 //! Timeline positions are stored as integer frames rather than floating-point
 //! seconds so edits remain deterministic at every supported frame rate.
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Project {
     pub name: String,
     pub settings: ProjectSettings,
@@ -11,7 +14,8 @@ pub struct Project {
     pub tracks: Vec<Track>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct ProjectSettings {
     pub width: u32,
     pub height: u32,
@@ -23,14 +27,16 @@ pub struct ProjectSettings {
     pub duration_frames: u64,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum MediaKind {
     Video,
     Audio,
     Image,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct MediaAsset {
     pub id: u64,
     /// Path as selected by the user. A future project loader will resolve
@@ -40,13 +46,15 @@ pub struct MediaAsset {
     pub kind: MediaKind,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
 pub enum TrackKind {
     Video,
     Audio,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Track {
     pub id: u64,
     pub name: String,
@@ -55,7 +63,8 @@ pub struct Track {
     pub clips: Vec<Clip>,
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
 pub struct Clip {
     pub id: u64,
     pub media_id: u64,
