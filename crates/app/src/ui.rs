@@ -1426,5 +1426,4 @@ mod tests {
             .apply(Action::SetPlayhead(42), &egui::Context::default());
         assert_eq!(harness.state().playhead_frame, 42);
     }
-
 }
