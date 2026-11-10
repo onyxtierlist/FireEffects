@@ -454,7 +454,11 @@ impl FireEffectsApp {
         } else {
             clip.start_frame.saturating_add(frames as u64)
         };
-        clip.start_frame = proposed.min(duration.saturating_sub(clip.duration_frames));
+        // Moving a clip beyond the old project end should extend the timeline,
+        // not silently pin the clip at frame zero (common for a 5s first clip).
+        clip.start_frame = proposed;
+        let clip_end = clip.start_frame.saturating_add(clip.duration_frames);
+        project.settings.duration_frames = duration.max(clip_end);
         self.project_dirty = true;
         self.notice = Some("Clip moved".to_owned());
     }
