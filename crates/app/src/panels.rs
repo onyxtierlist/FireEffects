@@ -6,7 +6,7 @@
 //! library, and they report the one command a click can produce.
 
 use eframe::egui;
-use fireeffects_core::{Action, MediaKind, Panel, Project, Workspace};
+use fireeffects_core::{Action, MediaKind, Panel, Project, TrackKind, Workspace};
 
 use crate::library::{Library, MediaEntry, MediaStatus};
 use crate::theme;
@@ -43,7 +43,7 @@ fn empty_state(panel: Panel) -> [&'static str; 2] {
         ],
         Panel::Timeline => [
             "No timeline yet",
-            "Tracks, clips, and the playhead arrive in Stage 3.",
+            "Add tracks and selected media, then move, trim, or delete clips.",
         ],
         Panel::Inspector => [
             "Nothing selected",
@@ -83,16 +83,123 @@ pub fn draw(
     match panel {
         Panel::Media => media(ui, project, library, action),
         Panel::Inspector => inspector(ui, project, library, action),
-        Panel::Preview | Panel::Timeline => {
+        Panel::Preview => {
             let [headline, detail] = empty_state(panel);
             ui.label(egui::RichText::new(headline).color(theme::TEXT));
             ui.label(egui::RichText::new(detail).color(theme::TEXT_DIM));
         }
+        Panel::Timeline => timeline(ui, project, library, action),
     }
 
     // A resizable panel only follows its handle if something claims the remaining
     // space, so the body claims it.
     ui.take_available_space();
+}
+
+/// The first usable timeline editor: tracks, clip placement, move, trim and delete.
+fn timeline(
+    ui: &mut egui::Ui,
+    project: Option<&Project>,
+    library: &Library,
+    action: &mut Option<Action>,
+) {
+    let Some(project) = project else {
+        ui.label(egui::RichText::new("Open a project to edit its timeline").color(theme::TEXT_DIM));
+        return;
+    };
+
+    ui.horizontal_wrapped(|ui| {
+        if ui.button("+ Video track").clicked() {
+            *action = Some(Action::AddTrack(TrackKind::Video));
+        }
+        if ui.button("+ Audio track").clicked() {
+            *action = Some(Action::AddTrack(TrackKind::Audio));
+        }
+        let selected = library.selected();
+        let can_add = selected.is_some_and(|entry| entry.status.is_available());
+        if ui.add_enabled(can_add, egui::Button::new("Add selected media")).clicked() {
+            *action = Some(Action::AddSelectedMediaToTimeline);
+        }
+    });
+
+    ui.label(
+        egui::RichText::new(format!(
+            "{} frames · {}/{} fps",
+            project.settings.duration_frames,
+            project.settings.frame_rate_num,
+            project.settings.frame_rate_den
+        ))
+        .color(theme::TEXT_DIM)
+        .small(),
+    );
+    ui.separator();
+
+    if project.tracks.is_empty() {
+        ui.label("No tracks yet. Add a video or audio track above.");
+        return;
+    }
+
+    egui::ScrollArea::vertical().show(ui, |ui| {
+        for track in &project.tracks {
+            ui.group(|ui| {
+                ui.horizontal(|ui| {
+                    ui.label(egui::RichText::new(&track.name).strong());
+                    ui.label(match track.kind {
+                        TrackKind::Video => "VIDEO",
+                        TrackKind::Audio => "AUDIO",
+                    });
+                    if ui.small_button(if track.muted { "Unmute" } else { "Mute" }).clicked() {
+                        *action = Some(Action::ToggleTrackMute(track.id));
+                    }
+                });
+                if track.clips.is_empty() {
+                    ui.label(egui::RichText::new("Empty track").color(theme::TEXT_DIM).small());
+                }
+                for clip in &track.clips {
+                    let media_name = project.media.iter()
+                        .find(|asset| asset.id == clip.media_id)
+                        .map(|asset| asset.display_name.as_str())
+                        .unwrap_or("Missing media");
+                    ui.horizontal_wrapped(|ui| {
+                        ui.label(format!(
+                            "{} · {}f → {}f",
+                            media_name,
+                            clip.start_frame,
+                            clip.start_frame.saturating_add(clip.duration_frames)
+                        ));
+                        if ui.small_button("← 1s").clicked() {
+                            *action = Some(Action::NudgeClip {
+                                clip_id: clip.id,
+                                frames: -(project.settings.frame_rate_num as i64),
+                            });
+                        }
+                        if ui.small_button("→ 1s").clicked() {
+                            *action = Some(Action::NudgeClip {
+                                clip_id: clip.id,
+                                frames: project.settings.frame_rate_num as i64,
+                            });
+                        }
+                        if ui.small_button("− 1s").clicked() {
+                            *action = Some(Action::ResizeClip {
+                                clip_id: clip.id,
+                                frames: -(project.settings.frame_rate_num as i64),
+                            });
+                        }
+                        if ui.small_button("+ 1s").clicked() {
+                            *action = Some(Action::ResizeClip {
+                                clip_id: clip.id,
+                                frames: project.settings.frame_rate_num as i64,
+                            });
+                        }
+                        if ui.small_button("Delete").clicked() {
+                            *action = Some(Action::DeleteClip(clip.id));
+                        }
+                    });
+                }
+            });
+            ui.add_space(4.0);
+        }
+    });
 }
 
 /// The project panel: the project's format, its media, and how to add more.

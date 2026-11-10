@@ -6,7 +6,7 @@
 
 use std::fmt;
 
-use crate::Panel;
+use crate::{Panel, TrackKind};
 
 /// Keyboard modifiers, described without reference to any UI toolkit.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -121,6 +121,18 @@ pub enum Action {
     CloseProject,
     /// Asks for media files and adds the supported ones to the project.
     ImportMedia,
+    /// Creates a timeline track.
+    AddTrack(TrackKind),
+    /// Adds the selected media item to a compatible timeline track.
+    AddSelectedMediaToTimeline,
+    /// Moves a clip by a signed number of frames.
+    NudgeClip { clip_id: u64, frames: i64 },
+    /// Changes a clip duration by a signed number of frames.
+    ResizeClip { clip_id: u64, frames: i64 },
+    /// Removes a clip from the timeline.
+    DeleteClip(u64),
+    /// Toggles a track's mute state.
+    ToggleTrackMute(u64),
     /// Selects a media item in the project panel.
     SelectMedia(u64),
     /// Asks for a new location for a media file the project cannot find.

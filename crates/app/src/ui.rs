@@ -17,7 +17,7 @@
 use std::path::{Path, PathBuf};
 
 use eframe::egui;
-use fireeffects_core::{Action, Panel, Project, Workspace};
+use fireeffects_core::{Action, Clip, MediaKind, Panel, Project, Track, TrackKind, Workspace};
 
 use crate::dialogs::{Confirmation, Intent};
 use crate::files::{FilePicker, NativePicker};
@@ -254,6 +254,12 @@ impl FireEffectsApp {
             Action::SaveProjectToPath => self.save_project_as(),
             Action::CloseProject => self.begin(Intent::CloseProject, ctx),
             Action::ImportMedia => self.import_media(),
+            Action::AddTrack(kind) => self.add_track(kind),
+            Action::AddSelectedMediaToTimeline => self.add_selected_media_to_timeline(),
+            Action::NudgeClip { clip_id, frames } => self.nudge_clip(clip_id, frames),
+            Action::ResizeClip { clip_id, frames } => self.resize_clip(clip_id, frames),
+            Action::DeleteClip(clip_id) => self.delete_clip(clip_id),
+            Action::ToggleTrackMute(track_id) => self.toggle_track_mute(track_id),
             Action::SelectMedia(id) => self.library.select(id),
             Action::RelinkMedia(id) => self.relink_media(id),
             Action::PickProjectFile => {
@@ -269,6 +275,130 @@ impl FireEffectsApp {
             Action::ShowShortcuts => self.dialogs.shortcuts = true,
             Action::ShowAbout => self.dialogs.about = true,
             Action::Quit => self.begin(Intent::Quit, ctx),
+        }
+    }
+
+    fn add_track(&mut self, kind: TrackKind) {
+        let Some(project) = self.project.as_mut() else {
+            self.notice = Some("Create or open a project first".to_owned());
+            return;
+        };
+        let id = project.tracks.iter().map(|track| track.id).max().unwrap_or(0).saturating_add(1);
+        let count = project.tracks.iter().filter(|track| track.kind == kind).count() + 1;
+        project.tracks.push(Track {
+            id,
+            name: format!("{} {count}", if kind == TrackKind::Video { "Video" } else { "Audio" }),
+            kind,
+            muted: false,
+            clips: Vec::new(),
+        });
+        self.project_dirty = true;
+        self.notice = Some("Timeline track added".to_owned());
+    }
+
+    fn add_selected_media_to_timeline(&mut self) {
+        let Some(entry) = self.library.selected().cloned() else {
+            self.notice = Some("Select a media item in the Media panel first".to_owned());
+            return;
+        };
+        if !entry.status.is_available() {
+            self.notice = Some("Relink this media before adding it to the timeline".to_owned());
+            return;
+        }
+        let Some(project) = self.project.as_mut() else {
+            self.notice = Some("Create or open a project first".to_owned());
+            return;
+        };
+        let kind = match entry.kind() {
+            MediaKind::Audio => TrackKind::Audio,
+            MediaKind::Video | MediaKind::Image => TrackKind::Video,
+        };
+        if !project.tracks.iter().any(|track| track.kind == kind) {
+            let id = project.tracks.iter().map(|track| track.id).max().unwrap_or(0).saturating_add(1);
+            let count = project.tracks.iter().filter(|track| track.kind == kind).count() + 1;
+            project.tracks.push(Track {
+                id,
+                name: format!("{} {count}", if kind == TrackKind::Video { "Video" } else { "Audio" }),
+                kind,
+                muted: false,
+                clips: Vec::new(),
+            });
+        }
+        let clip_id = project.tracks.iter().flat_map(|track| &track.clips)
+            .map(|clip| clip.id).max().unwrap_or(0).saturating_add(1);
+        let track = project.tracks.iter_mut().find(|track| track.kind == kind).expect("track created");
+        let start = track.clips.iter()
+            .map(|clip| clip.start_frame.saturating_add(clip.duration_frames))
+            .max().unwrap_or(0);
+        let duration = (project.settings.frame_rate_num as u64).saturating_mul(5).max(1);
+        let end = start.saturating_add(duration);
+        project.settings.duration_frames = project.settings.duration_frames.max(end);
+        track.clips.push(Clip {
+            id: clip_id,
+            media_id: entry.asset.id,
+            start_frame: start,
+            source_in_frame: 0,
+            duration_frames: duration,
+        });
+        self.project_dirty = true;
+        self.notice = Some(format!("{} added to timeline", entry.asset.display_name));
+    }
+
+    fn nudge_clip(&mut self, clip_id: u64, frames: i64) {
+        let Some(project) = self.project.as_mut() else { return; };
+        let duration = project.settings.duration_frames;
+        let Some(clip) = project.tracks.iter_mut().flat_map(|track| &mut track.clips)
+            .find(|clip| clip.id == clip_id) else {
+            self.notice = Some("Clip no longer exists".to_owned());
+            return;
+        };
+        let proposed = if frames < 0 {
+            clip.start_frame.saturating_sub(frames.unsigned_abs())
+        } else {
+            clip.start_frame.saturating_add(frames as u64)
+        };
+        clip.start_frame = proposed.min(duration.saturating_sub(clip.duration_frames));
+        self.project_dirty = true;
+        self.notice = Some("Clip moved".to_owned());
+    }
+
+    fn resize_clip(&mut self, clip_id: u64, frames: i64) {
+        let Some(project) = self.project.as_mut() else { return; };
+        let project_duration = project.settings.duration_frames;
+        let Some(clip) = project.tracks.iter_mut().flat_map(|track| &mut track.clips)
+            .find(|clip| clip.id == clip_id) else {
+            self.notice = Some("Clip no longer exists".to_owned());
+            return;
+        };
+        let proposed = if frames < 0 {
+            clip.duration_frames.saturating_sub(frames.unsigned_abs())
+        } else {
+            clip.duration_frames.saturating_add(frames as u64)
+        }.max(1);
+        clip.duration_frames = proposed.min(project_duration.saturating_sub(clip.start_frame).max(1));
+        self.project_dirty = true;
+        self.notice = Some("Clip duration changed".to_owned());
+    }
+
+    fn delete_clip(&mut self, clip_id: u64) {
+        let Some(project) = self.project.as_mut() else { return; };
+        let before: usize = project.tracks.iter().map(|track| track.clips.len()).sum();
+        for track in &mut project.tracks {
+            track.clips.retain(|clip| clip.id != clip_id);
+        }
+        let after: usize = project.tracks.iter().map(|track| track.clips.len()).sum();
+        if before != after {
+            self.project_dirty = true;
+            self.notice = Some("Clip deleted".to_owned());
+        }
+    }
+
+    fn toggle_track_mute(&mut self, track_id: u64) {
+        let Some(project) = self.project.as_mut() else { return; };
+        if let Some(track) = project.tracks.iter_mut().find(|track| track.id == track_id) {
+            track.muted = !track.muted;
+            self.project_dirty = true;
+            self.notice = Some(if track.muted { "Track muted" } else { "Track unmuted" }.to_owned());
         }
     }
 
