@@ -1,6 +1,6 @@
 # FireEffects architecture
 
-Status: **Stage 2 (Projects and media) implemented**. The versioned project format, create/open/save, media import with metadata, and missing-media relinking are in place; preview, timeline, and export are not. This document records what exists, what was chosen deliberately, and what is intentionally still undecided. Update it in the same change that alters one of those decisions.
+Status: **Stage 3 (Timeline editing) in progress**. Projects/media and the first track/clip editing controls are implemented. Timeline ruler/playhead, direct drag editing, undo/redo, preview/playback, and export remain pending. This document records what exists, what was chosen deliberately, and what is intentionally still undecided. Update it in the same change that alters one of those decisions.
 
 ## What exists today
 
@@ -10,9 +10,9 @@ Status: **Stage 2 (Projects and media) implemented**. The versioned project form
 - `crates/core`: platform-independent workspace, input, project, versioned
   project-serialization models, and media path/format rules.
 
-Media is imported, listed, and relinked but not decoded; the compositor and export
-are not implemented yet. The File menu provides New, Open, Save, Save As, Import
-Media, and Close Project, and the media panel lists what the project refers to.
+Media is imported, listed, and relinked but not decoded. The timeline can create
+tracks, place selected media, move/resize/delete clips, and mute tracks. The File
+menu provides New, Open, Save, Save As, Import Media, and Close Project.
 
 ## Crate layout and dependency direction
 
@@ -22,8 +22,8 @@ fireeffects-app  ──▶  fireeffects-core
 
 - **`fireeffects-core`** holds editing logic that must be testable without a
   display, a GPU, or media files: the time model, the workspace focus model, and
-  the command table today; project, timeline, and effect-parameter models as those
-  stages land.
+  the command table, project model, and timeline clip/track data today; effect
+  parameters arrive in later stages.
 - **`fireeffects-app`** owns the window, event loop, theme, and widgets. Modules:
 
   | Module | Responsibility |

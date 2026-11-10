@@ -31,7 +31,7 @@ The goal is a coherent, usable workflow—not disconnected demo screens. Every v
 
 ## Current implementation status
 
-The Stage 1 editor shell is complete. Stage 2 supports creating projects, saving and opening validated versioned `.firefx` files, importing media with its type and size, and relinking media that has moved. Media decoding, autosave, and recovery remain to be implemented. See [the project format specification](docs/PROJECT_FORMAT.md) for the current on-disk schema and limitations.
+The editor shell and Stage 2 project/media workflow are implemented. Projects can be created, saved, reopened, and validated; media can be imported, inspected, and relinked. The first Stage 3 timeline editor supports video/audio tracks, placing selected media, moving clips in one-second increments, changing clip duration, deleting clips, and muting tracks. A visual time ruler/playhead, drag editing, undo/redo, media decoding, autosave, and recovery are still pending. See [the project format specification](docs/PROJECT_FORMAT.md) for the current on-disk schema and limitations.
 
 ## 2. End-to-end development roadmap
 

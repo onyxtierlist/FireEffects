@@ -106,8 +106,10 @@ works:
   media commands, `Ctrl+1`-`Ctrl+4` to show and focus a panel, `F6` and `Shift+F6`
   to cycle focus, `F1` for the shortcut reference, `Ctrl+Q` to quit.
 
-There is still no media decoding, no timeline, no preview, and no export; each panel
-says which stage brings its features.
+The timeline's first editing controls can add video/audio tracks, place selected
+media, move clips in one-second steps, adjust clip duration, delete clips, and mute
+tracks. There is still no media decoding, playback preview, direct drag editing,
+undo/redo, or export; these are later Stage 3–7 work.
 
 ## Project files
 
