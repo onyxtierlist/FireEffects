@@ -29,6 +29,20 @@ The goal is a coherent, usable workflow—not disconnected demo screens. Every v
 - Performance suitable for real media projects.
 - Original FireEffects identity, design, code, and assets.
 
+## Windows prototype build
+
+A Windows release executable is built automatically by the **Windows prototype**
+GitHub Actions workflow. To download it:
+
+1. Open the repository's [Actions](https://github.com/onyxtierlist/FireEffects/actions) tab.
+2. Open the latest successful **Windows prototype** run on `main`.
+3. Download the `FireEffects-Windows-Prototype` artifact and extract the ZIP.
+4. Run `fireeffects.exe` on Windows 10/11 with a supported GPU driver.
+
+Artifacts expire after 30 days. A versioned prerelease asset can be published by
+creating a tag named `prototype-0.1.0` (or another `prototype-*` tag). This is an
+early prototype, not a finished editor.
+
 ## Current implementation status
 
 The editor shell and Stage 2 project/media workflow are implemented. Projects can be created, saved, reopened, and validated; media can be imported, inspected, and relinked. The first Stage 3 timeline editor supports video/audio tracks, placing selected media, moving clips in one-second increments, changing clip duration, deleting clips, and muting tracks. A visual time ruler/playhead, drag editing, undo/redo, media decoding, autosave, and recovery are still pending. See [the project format specification](docs/PROJECT_FORMAT.md) for the current on-disk schema and limitations.
