@@ -1316,4 +1316,48 @@ mod tests {
         );
         assert!(notice.ends_with('.'), "{notice}");
     }
+    #[test]
+    fn timeline_commands_create_tracks_and_edit_clips() {
+        let directory = tempfile::tempdir().expect("temp dir");
+        let media_path = write_media(directory.path(), "clip.mp4");
+        let mut harness = harness_with(ScriptedPicker {
+            choose_media: std::cell::RefCell::new(vec![media_path]),
+            ..ScriptedPicker::default()
+        });
+        harness.run();
+        create_project(&mut harness, "Timeline test");
+        harness.get_by_label("Import media…").click();
+        harness.run();
+
+        harness.state_mut().library.select(1);
+        harness.state_mut().apply(Action::AddSelectedMediaToTimeline, &egui::Context::default());
+        let project = harness.state().project.as_ref().expect("project");
+        assert_eq!(project.tracks.len(), 1);
+        assert_eq!(project.tracks[0].clips.len(), 1);
+        assert_eq!(project.tracks[0].clips[0].start_frame, 0);
+        assert_eq!(project.tracks[0].clips[0].duration_frames, 150);
+
+        harness.state_mut().apply(Action::NudgeClip { clip_id: 1, frames: 30 }, &egui::Context::default());
+        assert_eq!(harness.state().project.as_ref().unwrap().tracks[0].clips[0].start_frame, 30);
+        harness.state_mut().apply(Action::ResizeClip { clip_id: 1, frames: -30 }, &egui::Context::default());
+        assert_eq!(harness.state().project.as_ref().unwrap().tracks[0].clips[0].duration_frames, 120);
+        harness.state_mut().apply(Action::ToggleTrackMute(1), &egui::Context::default());
+        assert!(harness.state().project.as_ref().unwrap().tracks[0].muted);
+        harness.state_mut().apply(Action::DeleteClip(1), &egui::Context::default());
+        assert!(harness.state().project.as_ref().unwrap().tracks[0].clips.is_empty());
+        assert!(harness.state().project_dirty);
+    }
+
+    #[test]
+    fn playhead_is_clamped_to_the_project_duration() {
+        let mut harness = harness();
+        harness.run();
+        create_project(&mut harness, "Playhead test");
+        harness.state_mut().apply(Action::SetPlayhead(999), &egui::Context::default());
+        assert_eq!(harness.state().playhead_frame, 150);
+        harness.state_mut().apply(Action::SetPlayhead(42), &egui::Context::default());
+        assert_eq!(harness.state().playhead_frame, 42);
+    }
+
+
 }
