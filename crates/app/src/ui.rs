@@ -424,8 +424,12 @@ impl FireEffectsApp {
             return;
         };
         let project_duration = project.settings.duration_frames;
-        let Some(clip) = project.tracks.iter_mut().flat_map(|track| &mut track.clips)
-            .find(|clip| clip.id == clip_id) else {
+        let Some(clip) = project
+            .tracks
+            .iter_mut()
+            .flat_map(|track| &mut track.clips)
+            .find(|clip| clip.id == clip_id)
+        else {
             self.notice = Some("Clip no longer exists".to_owned());
             return;
         };
