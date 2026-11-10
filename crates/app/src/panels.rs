@@ -117,7 +117,10 @@ fn timeline(
         }
         let selected = library.selected();
         let can_add = selected.is_some_and(|entry| entry.status.is_available());
-        if ui.add_enabled(can_add, egui::Button::new("Add selected media")).clicked() {
+        if ui
+            .add_enabled(can_add, egui::Button::new("Add selected media"))
+            .clicked()
+        {
             *action = Some(Action::AddSelectedMediaToTimeline);
         }
     });
@@ -148,15 +151,24 @@ fn timeline(
                         TrackKind::Video => "VIDEO",
                         TrackKind::Audio => "AUDIO",
                     });
-                    if ui.small_button(if track.muted { "Unmute" } else { "Mute" }).clicked() {
+                    if ui
+                        .small_button(if track.muted { "Unmute" } else { "Mute" })
+                        .clicked()
+                    {
                         *action = Some(Action::ToggleTrackMute(track.id));
                     }
                 });
                 if track.clips.is_empty() {
-                    ui.label(egui::RichText::new("Empty track").color(theme::TEXT_DIM).small());
+                    ui.label(
+                        egui::RichText::new("Empty track")
+                            .color(theme::TEXT_DIM)
+                            .small(),
+                    );
                 }
                 for clip in &track.clips {
-                    let media_name = project.media.iter()
+                    let media_name = project
+                        .media
+                        .iter()
                         .find(|asset| asset.id == clip.media_id)
                         .map(|asset| asset.display_name.as_str())
                         .unwrap_or("Missing media");

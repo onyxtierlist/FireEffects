@@ -283,11 +283,29 @@ impl FireEffectsApp {
             self.notice = Some("Create or open a project first".to_owned());
             return;
         };
-        let id = project.tracks.iter().map(|track| track.id).max().unwrap_or(0).saturating_add(1);
-        let count = project.tracks.iter().filter(|track| track.kind == kind).count() + 1;
+        let id = project
+            .tracks
+            .iter()
+            .map(|track| track.id)
+            .max()
+            .unwrap_or(0)
+            .saturating_add(1);
+        let count = project
+            .tracks
+            .iter()
+            .filter(|track| track.kind == kind)
+            .count()
+            + 1;
         project.tracks.push(Track {
             id,
-            name: format!("{} {count}", if kind == TrackKind::Video { "Video" } else { "Audio" }),
+            name: format!(
+                "{} {count}",
+                if kind == TrackKind::Video {
+                    "Video"
+                } else {
+                    "Audio"
+                }
+            ),
             kind,
             muted: false,
             clips: Vec::new(),
@@ -314,23 +332,56 @@ impl FireEffectsApp {
             MediaKind::Video | MediaKind::Image => TrackKind::Video,
         };
         if !project.tracks.iter().any(|track| track.kind == kind) {
-            let id = project.tracks.iter().map(|track| track.id).max().unwrap_or(0).saturating_add(1);
-            let count = project.tracks.iter().filter(|track| track.kind == kind).count() + 1;
+            let id = project
+                .tracks
+                .iter()
+                .map(|track| track.id)
+                .max()
+                .unwrap_or(0)
+                .saturating_add(1);
+            let count = project
+                .tracks
+                .iter()
+                .filter(|track| track.kind == kind)
+                .count()
+                + 1;
             project.tracks.push(Track {
                 id,
-                name: format!("{} {count}", if kind == TrackKind::Video { "Video" } else { "Audio" }),
+                name: format!(
+                    "{} {count}",
+                    if kind == TrackKind::Video {
+                        "Video"
+                    } else {
+                        "Audio"
+                    }
+                ),
                 kind,
                 muted: false,
                 clips: Vec::new(),
             });
         }
-        let clip_id = project.tracks.iter().flat_map(|track| &track.clips)
-            .map(|clip| clip.id).max().unwrap_or(0).saturating_add(1);
-        let track = project.tracks.iter_mut().find(|track| track.kind == kind).expect("track created");
-        let start = track.clips.iter()
+        let clip_id = project
+            .tracks
+            .iter()
+            .flat_map(|track| &track.clips)
+            .map(|clip| clip.id)
+            .max()
+            .unwrap_or(0)
+            .saturating_add(1);
+        let track = project
+            .tracks
+            .iter_mut()
+            .find(|track| track.kind == kind)
+            .expect("track created");
+        let start = track
+            .clips
+            .iter()
             .map(|clip| clip.start_frame.saturating_add(clip.duration_frames))
-            .max().unwrap_or(0);
-        let duration = (project.settings.frame_rate_num as u64).saturating_mul(5).max(1);
+            .max()
+            .unwrap_or(0);
+        let duration = (project.settings.frame_rate_num as u64)
+            .saturating_mul(5)
+            .max(1);
         let end = start.saturating_add(duration);
         project.settings.duration_frames = project.settings.duration_frames.max(end);
         track.clips.push(Clip {
@@ -345,10 +396,16 @@ impl FireEffectsApp {
     }
 
     fn nudge_clip(&mut self, clip_id: u64, frames: i64) {
-        let Some(project) = self.project.as_mut() else { return; };
+        let Some(project) = self.project.as_mut() else {
+            return;
+        };
         let duration = project.settings.duration_frames;
-        let Some(clip) = project.tracks.iter_mut().flat_map(|track| &mut track.clips)
-            .find(|clip| clip.id == clip_id) else {
+        let Some(clip) = project
+            .tracks
+            .iter_mut()
+            .flat_map(|track| &mut track.clips)
+            .find(|clip| clip.id == clip_id)
+        else {
             self.notice = Some("Clip no longer exists".to_owned());
             return;
         };
@@ -363,7 +420,9 @@ impl FireEffectsApp {
     }
 
     fn resize_clip(&mut self, clip_id: u64, frames: i64) {
-        let Some(project) = self.project.as_mut() else { return; };
+        let Some(project) = self.project.as_mut() else {
+            return;
+        };
         let project_duration = project.settings.duration_frames;
         let Some(clip) = project.tracks.iter_mut().flat_map(|track| &mut track.clips)
             .find(|clip| clip.id == clip_id) else {
@@ -374,14 +433,18 @@ impl FireEffectsApp {
             clip.duration_frames.saturating_sub(frames.unsigned_abs())
         } else {
             clip.duration_frames.saturating_add(frames as u64)
-        }.max(1);
-        clip.duration_frames = proposed.min(project_duration.saturating_sub(clip.start_frame).max(1));
+        }
+        .max(1);
+        clip.duration_frames =
+            proposed.min(project_duration.saturating_sub(clip.start_frame).max(1));
         self.project_dirty = true;
         self.notice = Some("Clip duration changed".to_owned());
     }
 
     fn delete_clip(&mut self, clip_id: u64) {
-        let Some(project) = self.project.as_mut() else { return; };
+        let Some(project) = self.project.as_mut() else {
+            return;
+        };
         let before: usize = project.tracks.iter().map(|track| track.clips.len()).sum();
         for track in &mut project.tracks {
             track.clips.retain(|clip| clip.id != clip_id);
@@ -394,11 +457,20 @@ impl FireEffectsApp {
     }
 
     fn toggle_track_mute(&mut self, track_id: u64) {
-        let Some(project) = self.project.as_mut() else { return; };
+        let Some(project) = self.project.as_mut() else {
+            return;
+        };
         if let Some(track) = project.tracks.iter_mut().find(|track| track.id == track_id) {
             track.muted = !track.muted;
             self.project_dirty = true;
-            self.notice = Some(if track.muted { "Track muted" } else { "Track unmuted" }.to_owned());
+            self.notice = Some(
+                if track.muted {
+                    "Track muted"
+                } else {
+                    "Track unmuted"
+                }
+                .to_owned(),
+            );
         }
     }
 
