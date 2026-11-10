@@ -102,13 +102,27 @@ fn preview(ui: &mut egui::Ui, project: Option<&Project>, playhead_frame: u64) {
     };
     ui.vertical_centered(|ui| {
         ui.add_space(20.0);
-        ui.label(egui::RichText::new("PREVIEW").color(theme::TEXT_DIM).strong());
-        ui.label(egui::RichText::new(format!("Frame {playhead_frame}")).size(28.0).color(theme::TEXT));
+        ui.label(
+            egui::RichText::new("PREVIEW")
+                .color(theme::TEXT_DIM)
+                .strong(),
+        );
+        ui.label(
+            egui::RichText::new(format!("Frame {playhead_frame}"))
+                .size(28.0)
+                .color(theme::TEXT),
+        );
         let fps = project.settings.frame_rate_num as f64 / project.settings.frame_rate_den as f64;
-        let seconds = if fps > 0.0 { playhead_frame as f64 / fps } else { 0.0 };
+        let seconds = if fps > 0.0 {
+            playhead_frame as f64 / fps
+        } else {
+            0.0
+        };
         ui.label(egui::RichText::new(format!("{seconds:.3} s")).color(theme::EMBER));
         ui.add_space(12.0);
-        ui.label(egui::RichText::new("Media decoding and playback are Stage 4.").color(theme::TEXT_DIM));
+        ui.label(
+            egui::RichText::new("Media decoding and playback are Stage 4.").color(theme::TEXT_DIM),
+        );
     });
 }
 
@@ -144,7 +158,9 @@ fn timeline(
 
     let mut playhead = playhead_frame.min(project.settings.duration_frames);
     if ui
-        .add(egui::Slider::new(&mut playhead, 0..=project.settings.duration_frames).text("Playhead"))
+        .add(
+            egui::Slider::new(&mut playhead, 0..=project.settings.duration_frames).text("Playhead"),
+        )
         .changed()
     {
         *action = Some(Action::SetPlayhead(playhead));

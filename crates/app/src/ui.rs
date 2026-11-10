@@ -140,7 +140,15 @@ impl FireEffectsApp {
                 .min_size(180.0)
                 .frame(surface(theme::SURFACE))
                 .show(ui, |ui| {
-                    panels::draw(ui, Panel::Media, workspace, project, library, self.playhead_frame, action)
+                    panels::draw(
+                        ui,
+                        Panel::Media,
+                        workspace,
+                        project,
+                        library,
+                        self.playhead_frame,
+                        action,
+                    )
                 });
         }
 
@@ -151,7 +159,15 @@ impl FireEffectsApp {
                 .min_size(180.0)
                 .frame(surface(theme::SURFACE))
                 .show(ui, |ui| {
-                    panels::draw(ui, Panel::Inspector, workspace, project, library, self.playhead_frame, action)
+                    panels::draw(
+                        ui,
+                        Panel::Inspector,
+                        workspace,
+                        project,
+                        library,
+                        self.playhead_frame,
+                        action,
+                    )
                 });
         }
 
@@ -162,7 +178,15 @@ impl FireEffectsApp {
                 .min_size(120.0)
                 .frame(surface(theme::SURFACE))
                 .show(ui, |ui| {
-                    panels::draw(ui, Panel::Timeline, workspace, project, library, self.playhead_frame, action)
+                    panels::draw(
+                        ui,
+                        Panel::Timeline,
+                        workspace,
+                        project,
+                        library,
+                        self.playhead_frame,
+                        action,
+                    )
                 });
         }
 
@@ -170,7 +194,15 @@ impl FireEffectsApp {
             egui::CentralPanel::default()
                 .frame(surface(theme::CANVAS))
                 .show(ui, |ui| {
-                    panels::draw(ui, Panel::Preview, workspace, project, library, self.playhead_frame, action)
+                    panels::draw(
+                        ui,
+                        Panel::Preview,
+                        workspace,
+                        project,
+                        library,
+                        self.playhead_frame,
+                        action,
+                    )
                 });
         }
     }
@@ -263,7 +295,10 @@ impl FireEffectsApp {
             Action::DeleteClip(clip_id) => self.delete_clip(clip_id),
             Action::ToggleTrackMute(track_id) => self.toggle_track_mute(track_id),
             Action::SetPlayhead(frame) => {
-                self.playhead_frame = self.project.as_ref().map_or(0, |project| frame.min(project.settings.duration_frames));
+                self.playhead_frame = self
+                    .project
+                    .as_ref()
+                    .map_or(0, |project| frame.min(project.settings.duration_frames));
             }
             Action::SelectMedia(id) => self.library.select(id),
             Action::RelinkMedia(id) => self.relink_media(id),
@@ -1330,21 +1365,50 @@ mod tests {
         harness.run();
 
         harness.state_mut().library.select(1);
-        harness.state_mut().apply(Action::AddSelectedMediaToTimeline, &egui::Context::default());
+        harness.state_mut().apply(
+            Action::AddSelectedMediaToTimeline,
+            &egui::Context::default(),
+        );
         let project = harness.state().project.as_ref().expect("project");
         assert_eq!(project.tracks.len(), 1);
         assert_eq!(project.tracks[0].clips.len(), 1);
         assert_eq!(project.tracks[0].clips[0].start_frame, 0);
         assert_eq!(project.tracks[0].clips[0].duration_frames, 150);
 
-        harness.state_mut().apply(Action::NudgeClip { clip_id: 1, frames: 30 }, &egui::Context::default());
-        assert_eq!(harness.state().project.as_ref().unwrap().tracks[0].clips[0].start_frame, 30);
-        harness.state_mut().apply(Action::ResizeClip { clip_id: 1, frames: -30 }, &egui::Context::default());
-        assert_eq!(harness.state().project.as_ref().unwrap().tracks[0].clips[0].duration_frames, 120);
-        harness.state_mut().apply(Action::ToggleTrackMute(1), &egui::Context::default());
+        harness.state_mut().apply(
+            Action::NudgeClip {
+                clip_id: 1,
+                frames: 30,
+            },
+            &egui::Context::default(),
+        );
+        assert_eq!(
+            harness.state().project.as_ref().unwrap().tracks[0].clips[0].start_frame,
+            30
+        );
+        harness.state_mut().apply(
+            Action::ResizeClip {
+                clip_id: 1,
+                frames: -30,
+            },
+            &egui::Context::default(),
+        );
+        assert_eq!(
+            harness.state().project.as_ref().unwrap().tracks[0].clips[0].duration_frames,
+            120
+        );
+        harness
+            .state_mut()
+            .apply(Action::ToggleTrackMute(1), &egui::Context::default());
         assert!(harness.state().project.as_ref().unwrap().tracks[0].muted);
-        harness.state_mut().apply(Action::DeleteClip(1), &egui::Context::default());
-        assert!(harness.state().project.as_ref().unwrap().tracks[0].clips.is_empty());
+        harness
+            .state_mut()
+            .apply(Action::DeleteClip(1), &egui::Context::default());
+        assert!(
+            harness.state().project.as_ref().unwrap().tracks[0]
+                .clips
+                .is_empty()
+        );
         assert!(harness.state().project_dirty);
     }
 
@@ -1353,11 +1417,14 @@ mod tests {
         let mut harness = harness();
         harness.run();
         create_project(&mut harness, "Playhead test");
-        harness.state_mut().apply(Action::SetPlayhead(999), &egui::Context::default());
+        harness
+            .state_mut()
+            .apply(Action::SetPlayhead(999), &egui::Context::default());
         assert_eq!(harness.state().playhead_frame, 150);
-        harness.state_mut().apply(Action::SetPlayhead(42), &egui::Context::default());
+        harness
+            .state_mut()
+            .apply(Action::SetPlayhead(42), &egui::Context::default());
         assert_eq!(harness.state().playhead_frame, 42);
     }
-
 
 }
