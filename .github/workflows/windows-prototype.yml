@@ -1,0 +1,60 @@
+name: Windows prototype
+
+on:
+  push:
+    branches: [main]
+    tags: ["prototype-*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    name: Build Windows executable
+    runs-on: windows-latest
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v4
+
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Build release executable
+        run: cargo build --workspace --release
+
+      - name: Package prototype
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force package | Out-Null
+          Copy-Item target/release/fireeffects.exe package/
+          Copy-Item README.md package/
+          Copy-Item docs/DEVELOPMENT.md package/
+          @"
+          FireEffects Windows Prototype
+
+          Run fireeffects.exe on Windows 10/11 with a working GPU driver.
+          This is an early prototype. Some editor stages are not implemented yet.
+          If Windows reports a missing runtime DLL, install the Microsoft Visual C++
+          Redistributable (x64) from Microsoft's official website.
+          "@ | Set-Content package/README-RUN.txt
+          Compress-Archive -Path package/* -DestinationPath FireEffects-Windows-Prototype.zip
+
+      - name: Upload downloadable prototype
+        uses: actions/upload-artifact@v4
+        with:
+          name: FireEffects-Windows-Prototype
+          path: FireEffects-Windows-Prototype.zip
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Attach prototype to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/prototype-')
+        uses: softprops/action-gh-release@v2
+        with:
+          name: FireEffects Prototype ${{ github.ref_name }}
+          prerelease: true
+          files: FireEffects-Windows-Prototype.zip
+          generate_release_notes: true

@@ -2,7 +2,7 @@ name: Rust CI
 
 on:
   push:
-    branches: [chatgpt]
+    branches: [main, chatgpt]
   pull_request:
     branches: [main, chatgpt]
   workflow_dispatch:
