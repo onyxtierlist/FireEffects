@@ -4,6 +4,10 @@
 //! renderer, apply the application identity, and hand over to the shell. Project
 //! files, media, and their dialogs live in the shell and the modules beside it.
 
+// Release builds on Windows are GUI applications: don't flash an empty console
+// alongside the editor when users double-click the packaged executable.
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
+
 mod dialogs;
 mod files;
 mod keys;
