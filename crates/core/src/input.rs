@@ -133,6 +133,8 @@ pub enum Action {
     DeleteClip(u64),
     /// Toggles a track's mute state.
     ToggleTrackMute(u64),
+    /// Moves the timeline playhead to a frame.
+    SetPlayhead(u64),
     /// Selects a media item in the project panel.
     SelectMedia(u64),
     /// Asks for a new location for a media file the project cannot find.

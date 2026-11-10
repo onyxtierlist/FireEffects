@@ -62,6 +62,7 @@ pub fn draw(
     workspace: &Workspace,
     project: Option<&Project>,
     library: &Library,
+    playhead_frame: u64,
     action: &mut Option<Action>,
 ) {
     let focused = workspace.focused() == panel;
@@ -83,12 +84,8 @@ pub fn draw(
     match panel {
         Panel::Media => media(ui, project, library, action),
         Panel::Inspector => inspector(ui, project, library, action),
-        Panel::Preview => {
-            let [headline, detail] = empty_state(panel);
-            ui.label(egui::RichText::new(headline).color(theme::TEXT));
-            ui.label(egui::RichText::new(detail).color(theme::TEXT_DIM));
-        }
-        Panel::Timeline => timeline(ui, project, library, action),
+        Panel::Preview => preview(ui, project, playhead_frame),
+        Panel::Timeline => timeline(ui, project, library, playhead_frame, action),
     }
 
     // A resizable panel only follows its handle if something claims the remaining
@@ -96,11 +93,31 @@ pub fn draw(
     ui.take_available_space();
 }
 
+/// The preview surface currently exposes deterministic frame navigation.
+fn preview(ui: &mut egui::Ui, project: Option<&Project>, playhead_frame: u64) {
+    let Some(project) = project else {
+        ui.label(egui::RichText::new("Nothing to preview").color(theme::TEXT));
+        ui.label(egui::RichText::new("Create or open a project first.").color(theme::TEXT_DIM));
+        return;
+    };
+    ui.vertical_centered(|ui| {
+        ui.add_space(20.0);
+        ui.label(egui::RichText::new("PREVIEW").color(theme::TEXT_DIM).strong());
+        ui.label(egui::RichText::new(format!("Frame {playhead_frame}")).size(28.0).color(theme::TEXT));
+        let fps = project.settings.frame_rate_num as f64 / project.settings.frame_rate_den as f64;
+        let seconds = if fps > 0.0 { playhead_frame as f64 / fps } else { 0.0 };
+        ui.label(egui::RichText::new(format!("{seconds:.3} s")).color(theme::EMBER));
+        ui.add_space(12.0);
+        ui.label(egui::RichText::new("Media decoding and playback are Stage 4.").color(theme::TEXT_DIM));
+    });
+}
+
 /// The first usable timeline editor: tracks, clip placement, move, trim and delete.
 fn timeline(
     ui: &mut egui::Ui,
     project: Option<&Project>,
     library: &Library,
+    playhead_frame: u64,
     action: &mut Option<Action>,
 ) {
     let Some(project) = project else {
@@ -125,6 +142,13 @@ fn timeline(
         }
     });
 
+    let mut playhead = playhead_frame.min(project.settings.duration_frames);
+    if ui
+        .add(egui::Slider::new(&mut playhead, 0..=project.settings.duration_frames).text("Playhead"))
+        .changed()
+    {
+        *action = Some(Action::SetPlayhead(playhead));
+    }
     ui.label(
         egui::RichText::new(format!(
             "{} frames · {}/{} fps",

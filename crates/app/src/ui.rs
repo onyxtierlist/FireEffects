@@ -31,6 +31,7 @@ pub struct FireEffectsApp {
     project: Option<Project>,
     project_path: Option<PathBuf>,
     project_dirty: bool,
+    playhead_frame: u64,
     library: Library,
     /// Where the user chooses files. Swapped for a scripted picker in tests.
     picker: Box<dyn FilePicker>,
@@ -60,6 +61,7 @@ impl FireEffectsApp {
             project: None,
             project_path: None,
             project_dirty: false,
+            playhead_frame: 0,
             library: Library::default(),
             picker,
             pending: None,
@@ -138,7 +140,7 @@ impl FireEffectsApp {
                 .min_size(180.0)
                 .frame(surface(theme::SURFACE))
                 .show(ui, |ui| {
-                    panels::draw(ui, Panel::Media, workspace, project, library, action)
+                    panels::draw(ui, Panel::Media, workspace, project, library, self.playhead_frame, action)
                 });
         }
 
@@ -149,7 +151,7 @@ impl FireEffectsApp {
                 .min_size(180.0)
                 .frame(surface(theme::SURFACE))
                 .show(ui, |ui| {
-                    panels::draw(ui, Panel::Inspector, workspace, project, library, action)
+                    panels::draw(ui, Panel::Inspector, workspace, project, library, self.playhead_frame, action)
                 });
         }
 
@@ -160,7 +162,7 @@ impl FireEffectsApp {
                 .min_size(120.0)
                 .frame(surface(theme::SURFACE))
                 .show(ui, |ui| {
-                    panels::draw(ui, Panel::Timeline, workspace, project, library, action)
+                    panels::draw(ui, Panel::Timeline, workspace, project, library, self.playhead_frame, action)
                 });
         }
 
@@ -168,7 +170,7 @@ impl FireEffectsApp {
             egui::CentralPanel::default()
                 .frame(surface(theme::CANVAS))
                 .show(ui, |ui| {
-                    panels::draw(ui, Panel::Preview, workspace, project, library, action)
+                    panels::draw(ui, Panel::Preview, workspace, project, library, self.playhead_frame, action)
                 });
         }
     }
@@ -260,6 +262,9 @@ impl FireEffectsApp {
             Action::ResizeClip { clip_id, frames } => self.resize_clip(clip_id, frames),
             Action::DeleteClip(clip_id) => self.delete_clip(clip_id),
             Action::ToggleTrackMute(track_id) => self.toggle_track_mute(track_id),
+            Action::SetPlayhead(frame) => {
+                self.playhead_frame = self.project.as_ref().map_or(0, |project| frame.min(project.settings.duration_frames));
+            }
             Action::SelectMedia(id) => self.library.select(id),
             Action::RelinkMedia(id) => self.relink_media(id),
             Action::PickProjectFile => {
@@ -498,6 +503,7 @@ impl FireEffectsApp {
             Intent::OpenProject => self.dialogs.open_project = true,
             Intent::CloseProject => {
                 self.project = None;
+                self.playhead_frame = 0;
                 self.project_path = None;
                 self.project_dirty = false;
                 self.library.clear();
@@ -541,6 +547,7 @@ impl FireEffectsApp {
         }
 
         self.project = Some(Project::new(name));
+        self.playhead_frame = 0;
         self.project_path = None;
         self.project_dirty = true;
         self.dialogs.new_project = false;
